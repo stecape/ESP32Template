@@ -1,0 +1,222 @@
+menu "Pot"
+    menu  "Pot - Provisioning Configuration"
+        choice PROV_TRANSPORT
+            bool "Provisioning Transport"
+            default PROV_TRANSPORT_SOFTAP if IDF_TARGET_ESP32S2
+            default PROV_TRANSPORT_BLE
+            help
+                Wi-Fi provisioning component offers both, SoftAP and BLE transports. Choose any one.
+
+            config PROV_TRANSPORT_BLE
+                bool "BLE"
+                select BT_ENABLED
+                depends on !IDF_TARGET_ESP32S2
+            config PROV_TRANSPORT_SOFTAP
+                bool "Soft AP"
+                select LWIP_IPV4
+        endchoice
+
+        choice PROV_SECURITY_VERSION
+            bool "Protocomm security version"
+            default PROV_SECURITY_VERSION_2
+            help
+                Wi-Fi provisioning component offers 3 security versions.
+                The example offers a choice between security version 1 and 2.
+
+            config PROV_SECURITY_VERSION_1
+                bool "Security version 1"
+                select ESP_PROTOCOMM_SUPPORT_SECURITY_VERSION_1
+
+            config PROV_SECURITY_VERSION_2
+                bool "Security version 2"
+                select ESP_PROTOCOMM_SUPPORT_SECURITY_VERSION_2
+        endchoice
+
+        choice PROV_MODE
+            bool "Security version 2 mode"
+            depends on PROV_SECURITY_VERSION_2
+            default PROV_SEC2_DEV_MODE
+
+            config PROV_SEC2_DEV_MODE
+                bool "Security version 2 development mode"
+                depends on PROV_SECURITY_VERSION_2
+                help
+                    This enables the development mode for
+                    security version 2.
+                    Please note that this mode is NOT recommended for production purpose.
+
+            config PROV_SEC2_PROD_MODE
+                bool "Security version 2 production mode"
+                depends on PROV_SECURITY_VERSION_2
+                help
+                    This enables the production mode for
+                    security version 2.
+        endchoice
+
+        config PROV_TRANSPORT
+            int
+            default 1 if PROV_TRANSPORT_BLE
+            default 2 if PROV_TRANSPORT_SOFTAP
+
+        config RESET_PROVISIONED
+            bool
+            default n
+            prompt "Reset provisioned status of the device"
+            help
+                This erases the NVS to reset provisioned status of the device on every reboot.
+                Provisioned status is determined by the Wi-Fi STA configuration, saved on the NVS.
+
+        config RESET_PROV_MGR_ON_FAILURE
+            bool
+            default y
+            prompt "Reset provisioned credentials and state machine after session failure"
+            help
+                Enable reseting provisioned credentials and state machine after session failure.
+                This will restart the provisioning service after retries are exhausted.
+
+        config PROV_MGR_MAX_RETRY_CNT
+            int
+            default 5
+            prompt "Max retries before reseting provisioning state machine"
+            depends on RESET_PROV_MGR_ON_FAILURE
+            help
+                Set the Maximum retry to avoid reconnecting to an inexistent AP or if credentials
+                are misconfigured. Provisioned credentials are erased and internal state machine
+                is reset after this threshold is reached.
+
+        config PROV_SHOW_QR
+            bool "Show provisioning QR code"
+            default y
+            help
+                Show the QR code for provisioning.
+
+        config PROV_USING_BLUEDROID
+            bool
+            depends on (BT_BLUEDROID_ENABLED && (IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32S3))
+            select BT_BLE_42_FEATURES_SUPPORTED
+            default y
+            help
+                This enables BLE 4.2 features for Bluedroid.
+
+        config REPROVISIONING
+            bool "Re-provisioning"
+            help
+                Enable re-provisioning - allow the device to provision for new credentials
+                after previous successful provisioning.
+
+    endmenu
+    menu "Pot - MQTT Configuration"
+
+        config MQTT_BROKER_URL
+            string "MQTT Broker URL"
+            default "mqtt://broker.hivemq.com"
+            help
+                URL del broker MQTT.
+
+        config MQTT_BROKER_PORT
+            int "MQTT Broker PORT"
+            default 1883
+            help
+                Porta del broker MQTT.
+        
+        config MQTT_USERNAME
+            string "MQTT Username"
+            default ""
+            help
+                Username per l'autenticazione MQTT.
+        
+        config MQTT_PASSWORD
+            string "MQTT Password"
+            default ""
+            help
+                Password per l'autenticazione MQTT.
+        
+        config MQTT_SUBSCRIBE_TOPIC
+            string "MQTT Subscribe Topic"
+            default "/topic/test1"
+            help
+                Topic a cui fare subscribe.
+        
+        config MQTT_QOS
+            int "MQTT QoS"
+            range 0 2
+            default 0
+            help
+                Quality of Service level for MQTT messages.
+        
+        config MQTT_KEEP_ALIVE
+            int "MQTT Keep Alive Interval"
+            default 60
+            help
+                Keep alive interval in seconds.
+        
+        config MQTT_DISABLE_CLEAN_SESSION
+            bool "MQTT Disable clean session"
+            default n
+            help
+                Se impostato a true, mantiene le sessioni precedenti e i messaggi QoS 1 e 2 non consegnati.
+        
+        config MQTT_RECONNECT_TIMEOUT
+            int "MQTT Reconnect Timeout"
+            default 10
+            help
+                Timeout in seconds before attempting to reconnect.
+
+        config MQTT_BIRTH_TOPIC
+            string "MQTT Birth Topic"
+            default "/birth"
+            help
+                Topic for Birth Message.
+        
+        config MQTT_BIRTH_MSG
+            string "MQTT Birth Message"
+            default "ESP32 connected"
+            help
+                Message for Birth Message.
+        
+        config MQTT_BIRTH_QOS
+            int "MQTT Birth QoS"
+            range 0 2
+            default 0
+            help
+                QoS level for Birth Message.
+        
+        config MQTT_BIRTH_RETAIN
+            bool "MQTT Birth Retain"
+            default n
+            help
+                Retain flag for Birth Message.
+        
+        config MQTT_LWT_TOPIC
+            string "MQTT LWT Topic"
+            default "/lwt"
+            help
+                Topic for Last Will and Testament.
+        
+        config MQTT_LWT_MSG
+            string "MQTT LWT Message"
+            default "ESP32 disconnected"
+            help
+                Message for Last Will and Testament.
+        
+        config MQTT_LWT_QOS
+            int "MQTT LWT QoS"
+            range 0 2
+            default 0
+            help
+                QoS level for Last Will and Testament.
+        
+        config MQTT_LWT_RETAIN
+            bool "MQTT LWT Retain"
+            default n
+            help
+                Retain flag for Last Will and Testament.
+        
+    endmenu
+    menu  "Pot - Test"
+        config PROVA123
+            bool "Re-prova"
+            help
+                Enable re-prova.
+    endmenu
+endmenu

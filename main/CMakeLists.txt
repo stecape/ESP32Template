@@ -1,0 +1,2 @@
+idf_component_register(SRCS "main.c" "peripherials/led/led.c" "services/mqtt/mqtt.c" "services/Wifi/Wifi.c"
+                       INCLUDE_DIRS "." "peripherials/led" "services/mqtt" "services/Wifi")

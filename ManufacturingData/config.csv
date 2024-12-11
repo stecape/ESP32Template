@@ -1,0 +1,4 @@
+flowerpot,namespace,
+serial_no,data,string
+salt,data,hex2bin
+verifier,data,hex2bin
