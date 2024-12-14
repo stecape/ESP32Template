@@ -7,7 +7,7 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include "data.h"
+#include "HMI.h"
 #include "./Wifi.h"
 
 #include <stdio.h>
@@ -653,9 +653,4 @@ void Wifi_setup(){
 }
 
 void Wifi_loop(){
-}
-
-void Wifi_send(){
-    //check_wifi_status();
-  
 }

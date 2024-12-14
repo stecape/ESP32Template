@@ -131,11 +131,29 @@ menu "Pot"
             help
                 Password per l'autenticazione MQTT.
         
-        config MQTT_SUBSCRIBE_TOPIC
-            string "MQTT Subscribe Topic"
-            default "/topic/test1"
+        config MQTT_CLIENT_ID
+            string "MQTT Client ID"
+            default "Pot"
             help
-                Topic a cui fare subscribe.
+                Client Id che verrà usato nel topic per identificare le publish.
+        
+        config MQTT_COMMAND_TOPIC
+            string "MQTT Subscribe Topic"
+            default "/command"
+            help
+                Topic a cui fare subscribe per ricevere i comandi.
+        
+        config MQTT_COMMAND_TOPIC_BROADCAST
+            string "MQTT Subscribe Topic"
+            default "/command/broadcast"
+            help
+                Topic a cui fare subscribe per ricevere i comandi broadcast.
+        
+        config MQTT_FEEDBACK_TOPIC
+            string "MQTT Subscribe Topic"
+            default "/feedback"
+            help
+                Topic a cui fare subscribe per ricevere i comandi broadcast.
         
         config MQTT_QOS
             int "MQTT QoS"

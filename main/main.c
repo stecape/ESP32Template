@@ -9,9 +9,12 @@
 #include "driver/gptimer.h"
 #include "esp_log.h"
 #include "esp_event.h"
+#include "HMI.h"
 #include "peripherials/led/led.h"
 #include "services/mqtt/mqtt.h"
 #include "services/Wifi/Wifi.h"
+
+#include <math.h>
 
 #define INTERRUPT_CYCLE_TIME_S 5
 
@@ -22,6 +25,7 @@ void setup() {
   // Create default event loop
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   Wifi_setup();
+  mqtt_setup();
   led_setup();
 }
 
@@ -36,7 +40,10 @@ void loop() {
 void interrupt() {
   // Interrupt calls
   led_interrupt();
-  Wifi_send();
+  float val = round((float)rand() / RAND_MAX * 1000.0)/10.0;
+  //mqtt_updHMI(&BatteryLevel.Act.Value, &val);
+  mqtt_updHMI(&BatteryLevel.Act.Value, &BatteryLevel.Limit.Min);
+
 }
 
 
@@ -90,7 +97,7 @@ void app_main(void) {
   // Inizializza in timer
   init_timer();
   // Creazione del task dedicato
-  xTaskCreatePinnedToCore(interrupt_task, "interrupt_task", 2048, NULL, 10, &task_handle, 1); // Pinning to core 1
+  xTaskCreatePinnedToCore(interrupt_task, "interrupt_task", 4096, NULL, 10, &task_handle, 1); // Pinning to core 1
   setup();
 
   while (true) {

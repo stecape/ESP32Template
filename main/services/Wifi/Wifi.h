@@ -12,6 +12,5 @@
 // Funzioni di setup, loop ed interrupt
 void Wifi_setup(void);
 void Wifi_loop(void);
-void Wifi_send(void);
 
 #endif
