@@ -41,7 +41,7 @@ void interrupt() {
   // Interrupt calls
   led_interrupt();
   float val = round((float)rand() / RAND_MAX * 1000.0)/10.0;
-  //mqtt_updHMI(&BatteryLevel.Act.Value, &val);
+  mqtt_updHMI(&BatteryLevel.Limit.Max, &val);
   mqtt_updHMI(&BatteryLevel.Act.Value, &BatteryLevel.Limit.Min);
 
 }

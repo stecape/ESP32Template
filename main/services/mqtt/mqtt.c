@@ -4,6 +4,7 @@
 #include "mqtt_client.h"
 #include <cJSON.h>
 #include "HMI.h"
+#include <math.h>
 
 #ifndef CONFIG_MQTT_LWT_RETAIN
 #define CONFIG_MQTT_LWT_RETAIN 0
@@ -131,7 +132,7 @@ void mqtt_setup(){
     esp_mqtt_client_start(client);
 }
 
-void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
+/* void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
     cJSON *root = cJSON_CreateObject();
     for (size_t i = 0; i < array_length; i++) {
         if (pointer[i] == ptrToHMIVar) {
@@ -160,7 +161,50 @@ void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
                     return;
             }
             char *payload = cJSON_Print(root);
-            esp_mqtt_client_publish(client, CONFIG_MQTT_FEEDBACK_TOPIC, payload, 0, 1, 0);
+            esp_mqtt_client_publish(client, feedback_topic, payload, 0, 1, 0);
+
+            cJSON_Delete(root);
+            free(payload);
+            break;
+        }
+    }
+} */
+
+void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
+    cJSON *root = cJSON_CreateObject();
+    for (size_t i = 0; i < array_length; i++) {
+        if (pointer[i] == ptrToHMIVar) {
+            cJSON_AddNumberToObject(root, "id", id[i]);
+            switch (type[i]) {
+                case REAL: {
+                    *(float *)ptrToHMIVar = *(float *)ptrToValue;
+                    double rounded_value = round(*(float *)ptrToValue * 10000) / 10000;
+                    cJSON_AddNumberToObject(root, "value", rounded_value);
+                    break;
+                }
+                case INT: {
+                    *(int *)ptrToHMIVar = *(int *)ptrToValue;
+                    cJSON_AddNumberToObject(root, "value", (double)*(int *)ptrToValue);
+                    break;
+                }
+                case BOOL: {
+                    *(int *)ptrToHMIVar = (*(int *)ptrToValue != 0);
+                    cJSON_AddBoolToObject(root, "value", (*(int *)ptrToValue != 0));
+                    break;
+                }
+                case STRING:
+                    // Gestione delle stringhe se necessario
+                    break;
+                case TIMESTAMP:
+                    // Gestione dei timestamp se necessario
+                    break;
+                default:
+                    ESP_LOGE(TAG, "Unknown type");
+                    cJSON_Delete(root);
+                    return;
+            }
+            char *payload = cJSON_Print(root);
+            esp_mqtt_client_publish(client, feedback_topic, payload, 0, 1, 0);
 
             cJSON_Delete(root);
             free(payload);
