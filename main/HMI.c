@@ -1,9 +1,11 @@
 #include "HMI.h"
 
-Act BatteryLevel = {
-	.Act.Value = 0, 
-	.Limit.Max = 0, 
-	.Limit.Min = 0, 
+_HMI HMI = {
+	.BatteryLevel = {
+		.Act.Value = 0,
+		.Limit.Max = 0,
+		.Limit.Min = 0,
+	},
 };
 
 int id[3] = {
@@ -19,7 +21,7 @@ int type[3] = {
 };
 
 void *pointer[3] = {
-	(void*)&BatteryLevel.Act.Value,
-	(void*)&BatteryLevel.Limit.Max,
-	(void*)&BatteryLevel.Limit.Min
+	(void*)&HMI.BatteryLevel.Act.Value,
+	(void*)&HMI.BatteryLevel.Limit.Max,
+	(void*)&HMI.BatteryLevel.Limit.Min
 };

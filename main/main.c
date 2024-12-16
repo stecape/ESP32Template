@@ -14,9 +14,11 @@
 #include "services/mqtt/mqtt.h"
 #include "services/Wifi/Wifi.h"
 
+//Librerie per test
 #include <math.h>
+//Librerie per test
 
-#define INTERRUPT_CYCLE_TIME_S 5
+#define CONFIG_INTERRUPT_CYCLE_TIME_S 5
 
 
 void setup() {
@@ -41,8 +43,8 @@ void interrupt() {
   // Interrupt calls
   led_interrupt();
   float val = round((float)rand() / RAND_MAX * 1000.0)/10.0;
-  mqtt_updHMI(&BatteryLevel.Limit.Max, &val);
-  mqtt_updHMI(&BatteryLevel.Act.Value, &BatteryLevel.Limit.Min);
+  mqtt_updHMI(&HMI.BatteryLevel.Limit.Max, &val);
+  mqtt_updHMI(&HMI.BatteryLevel.Act.Value, &HMI.BatteryLevel.Limit.Min);
 
 }
 
@@ -69,7 +71,7 @@ void init_timer() {
         .resolution_hz = 1000000, // 1 MHz per ottenere microsecondi
     };
     gptimer_alarm_config_t alarm_config = {
-        .alarm_count = INTERRUPT_CYCLE_TIME_S * 1000000, // 5 secondi (5 milioni di microsecondi)
+        .alarm_count = CONFIG_INTERRUPT_CYCLE_TIME_S * 1000000, // 5 secondi (5 milioni di microsecondi)
         .reload_count = 0,
         .flags.auto_reload_on_alarm = true,
     };

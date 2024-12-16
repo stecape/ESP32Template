@@ -54,7 +54,10 @@ typedef struct {
 	time_t Ts;
 } Alarm;
 
-extern Act BatteryLevel;
+typedef struct {
+	Act BatteryLevel;
+} _HMI;
+extern _HMI HMI;
 
 extern int id[3];
 extern int type[3];

@@ -1,7 +1,5 @@
 /*
-I topic a cui ci si deve registrare sono "command" per ciò che arriva, "feedback" per ciò che viene spedito.
-Nella fattispecie:
-
+  I topic sono "/command/CONFIG_MQTT_DEVICE_ID" per ciò che arriva all'ESP32, "/feedback/CONFIG_MQTT_DEVICE_ID" per ciò che viene spedito dall'ESP32.
 */
 
 #ifndef mqtt_h
@@ -10,7 +8,7 @@ Nella fattispecie:
 #include "esp_log.h"
 #include "mqtt_client.h"
 
-// Funzioni di setup, loop e send
+// Funzioni di setup e di scrittura delle variabili HMI dall'interno del software ESP32
 void mqtt_setup(void);
 void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue);
 

@@ -14,8 +14,8 @@
 #define CONFIG_MQTT_BIRTH_RETAIN 0
 #endif
 
-#ifndef MQTT_DISABLE_CLEAN_SESSION
-#define MQTT_DISABLE_CLEAN_SESSION 0
+#ifndef CONFIG_MQTT_DISABLE_CLEAN_SESSION
+#define CONFIG_MQTT_DISABLE_CLEAN_SESSION 0
 #endif
 
 #ifndef ARRAY_SIZE
@@ -34,7 +34,7 @@ esp_mqtt_client_config_t mqtt_cfg = {
     .credentials.username = CONFIG_MQTT_USERNAME,
     .credentials.authentication.password = CONFIG_MQTT_PASSWORD,
     .session.keepalive = CONFIG_MQTT_KEEP_ALIVE,
-    .session.disable_clean_session = MQTT_DISABLE_CLEAN_SESSION,
+    .session.disable_clean_session = CONFIG_MQTT_DISABLE_CLEAN_SESSION,
     .network.reconnect_timeout_ms = CONFIG_MQTT_RECONNECT_TIMEOUT * 1000,
     .session.last_will.topic = CONFIG_MQTT_LWT_TOPIC,
     .session.last_will.msg = CONFIG_MQTT_LWT_MSG,
@@ -43,6 +43,19 @@ esp_mqtt_client_config_t mqtt_cfg = {
 };
 esp_mqtt_client_handle_t client;
 
+
+/*
+    Funzione di receive.
+    Le variabili HMI sono organizzate su 3 arrays:
+    id, type, pointer
+    Quando ricevi un command:
+    {"id":xxx, "value":yyy}
+    Vai a cercare l'id nel rispettivo array. 
+    La sua posizione (il cursore i della for) verrà utilizzata per andare ad incrociare negli altri due array
+    il relativo tipo ed il puntatore alla variabile nella memoria dell'ESP32.
+    Questo perché l'array pointer è un array di puntatori generici, e quindi devi fare il cast col tipo corretto
+    della variabile che puntano prima di eseguire la scrittura.
+*/
 static void mqtt_receive(esp_mqtt_event_handle_t event){
   ///va a leggere gli array e scrive i le variabili
     cJSON *root = cJSON_Parse(event->data);
@@ -104,6 +117,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     switch ((esp_mqtt_event_id_t)event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+            // ALLA CONNESSIONE, ESEGUE LE SUBSCRIPTIONS
             msg_id = esp_mqtt_client_subscribe(client, command_topic, CONFIG_MQTT_QOS);
             msg_id = esp_mqtt_client_subscribe(client, CONFIG_MQTT_COMMAND_TOPIC_BROADCAST, CONFIG_MQTT_QOS);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
@@ -117,7 +131,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             ESP_LOGI(TAG, "MQTT_EVENT_DATA");
             printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
             printf("DATA=%.*s\r\n", event->data_len, event->data);
-            ////////////////////////////QUI DEVO GESTIRE L'AGGIORNAMENTO DEI VALORI SULLA RECEZIONE DEI COMANDI DA HMI
+            //AGGIORNAMENTO DEI VALORI SULLA RECEZIONE DEI COMANDI DA HMI
             mqtt_receive(event);
             break;
         default:
@@ -126,50 +140,21 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
+// Funzione di configurazione della sessione MQTT
 void mqtt_setup(){
     client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);
 }
 
-/* void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
-    cJSON *root = cJSON_CreateObject();
-    for (size_t i = 0; i < array_length; i++) {
-        if (pointer[i] == ptrToHMIVar) {
-            cJSON_AddNumberToObject(root, "id", id[i]);
-            switch (type[i]) {
-                case REAL:
-                    *(float *)ptrToHMIVar = *(float *)ptrToValue;
-                    cJSON_AddNumberToObject(root, "value", (double)*(float *)ptrToValue);
-                    break;
-                case INT:
-                    *(int *)ptrToHMIVar = *(int *)ptrToValue;
-                    cJSON_AddNumberToObject(root, "value", (double)*(int *)ptrToValue);
-                    break;
-                case BOOL:
-                    *(int *)ptrToHMIVar = (*(int *)ptrToValue != 0);
-                    cJSON_AddBoolToObject(root, "value", (*(int *)ptrToValue != 0));
-                    break;
-                case STRING:
-                    // Gestione delle stringhe se necessario
-                    break;
-                case TIMESTAMP:
-                    // Gestione dei timestamp se necessario
-                    break;
-                default:
-                    ESP_LOGE(TAG, "Unknown type");
-                    return;
-            }
-            char *payload = cJSON_Print(root);
-            esp_mqtt_client_publish(client, feedback_topic, payload, 0, 1, 0);
-
-            cJSON_Delete(root);
-            free(payload);
-            break;
-        }
-    }
-} */
-
+/*
+    Funzione di aggiornamento dei valori sull'HMI.
+    Al momento vengono spediti messaggi in json col seguente formato:
+    {"id":xxx, "value":yyyy}
+    Sto pensando di passare ad una serie di coppie <id,value> in CSV, per alleggerire:
+    xxx,yyy
+    zzz,aaa
+*/
 void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
     cJSON *root = cJSON_CreateObject();
     for (size_t i = 0; i < array_length; i++) {
