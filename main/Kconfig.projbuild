@@ -105,6 +105,7 @@ menu "Pot"
                 after previous successful provisioning.
 
     endmenu
+
     menu "Pot - MQTT Configuration"
 
         config MQTT_BROKER_URL
@@ -223,14 +224,145 @@ menu "Pot"
             default 0
             help
                 QoS level for Last Will and Testament.
-        
+
         config MQTT_LWT_RETAIN
             bool "MQTT LWT Retain"
             default n
             help
                 Retain flag for Last Will and Testament.
-        
     endmenu
+
+    menu "Pot - HomeAssistant"
+        config MQTT_HOMEASSISTANT
+            bool "HomeAssistant - MQTT interfacement"
+            default n
+            help
+                HomeAssistant interfacement enabled
+
+        config MQTT_HOMEASSISTANT_BROKER_URL
+            string "HomeAssistant - MQTT Broker URL"
+            default "mqtt:homeassistant"
+            help
+                URL del broker MQTT su HomeAssistant.
+
+        config MQTT_HOMEASSISTANT_BROKER_PORT
+            int "HomeAssistant - MQTT Broker PORT"
+            default 1883
+            help
+                Porta del broker MQTT su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_USERNAME
+            string "HomeAssistant - MQTT Username su HomeAssistant"
+            default "mqttuser"
+            help
+                Username per l'autenticazione MQTT su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_PASSWORD
+            string "HomeAssistant - MQTT Password"
+            default "mqttpassword"
+            help
+                Password per l'autenticazione MQTT su HomeAssistant.        
+
+        config MQTT_HOMEASSISTANT_DEVICE_TYPE
+            string "HomeAssistant - MQTT Device type"
+            default "sensor"
+            help
+                Client Id che verrà usato nel topic per identificare le publish su HomeAssistant.
+
+        config MQTT_HOMEASSISTANT_CLIENT_ID
+            string "HomeAssistant - MQTT Client ID"
+            default "Pot"
+            help
+                Client Id che verrà usato nel topic per identificare le publish su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_COMMAND_TOPIC
+            string "HomeAssistant - MQTT Subscribe Topic"
+            default "/command"
+            help
+                Topic a cui fare subscribe per ricevere i comandi su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_FEEDBACK_TOPIC
+            string "HomeAssistant - MQTT Subscribe Topic"
+            default "/feedback"
+            help
+                Topic a cui fare subscribe per ricevere i comandi broadcast su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_QOS
+            int "HomeAssistant - MQTT QoS"
+            range 0 2
+            default 0
+            help
+                Quality of Service level for MQTT messages su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_KEEP_ALIVE
+            int "HomeAssistant - MQTT Keep Alive Interval"
+            default 60
+            help
+                Keep alive interval in seconds su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_DISABLE_CLEAN_SESSION
+            bool "HomeAssistant - MQTT Disable clean session"
+            default n
+            help
+                Se impostato a true, mantiene le sessioni precedenti e i messaggi QoS 1 e 2 non consegnati su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_RECONNECT_TIMEOUT
+            int "HomeAssistant - MQTT Reconnect Timeout"
+            default 10
+            help
+                Timeout in seconds before attempting to reconnect su HomeAssistant.
+
+        config MQTT_HOMEASSISTANT_BIRTH_TOPIC
+            string "HomeAssistant - MQTT Birth Topic"
+            default "/birth"
+            help
+                Topic for Birth Message su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_BIRTH_MSG
+            string "HomeAssistant - MQTT Birth Message"
+            default "ESP32 connected"
+            help
+                Message for Birth Message su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_BIRTH_QOS
+            int "HomeAssistant - MQTT Birth QoS"
+            range 0 2
+            default 0
+            help
+                QoS level for Birth Message su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_BIRTH_RETAIN
+            bool "HomeAssistant - MQTT Birth Retain"
+            default n
+            help
+                Retain flag for Birth Message su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_LWT_TOPIC
+            string "HomeAssistant - MQTT LWT Topic"
+            default "/lwt"
+            help
+                Topic for Last Will and Testament su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_LWT_MSG
+            string "HomeAssistant - MQTT LWT Message"
+            default "ESP32 disconnected"
+            help
+                Message for Last Will and Testament su HomeAssistant.
+        
+        config MQTT_HOMEASSISTANT_LWT_QOS
+            int "HomeAssistant - MQTT LWT QoS"
+            range 0 2
+            default 0
+            help
+                QoS level for Last Will and Testament su HomeAssistant.
+
+        config MQTT_HOMEASSISTANT_LWT_RETAIN
+            bool "HomeAssistant - MQTT LWT Retain"
+            default n
+            help
+                Retain flag for Last Will and Testament su HomeAssistant.
+    endmenu
+
     menu  "Pot - Test"
         config PROVA123
             bool "Re-prova"

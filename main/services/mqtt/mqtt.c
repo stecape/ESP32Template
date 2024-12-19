@@ -18,17 +18,25 @@
 #define CONFIG_MQTT_DISABLE_CLEAN_SESSION 0
 #endif
 
+#ifndef CONFIG_MQTT_HOMEASSISTANT
+#define CONFIG_MQTT_HOMEASSISTANT 0
+#endif
+
+#if CONFIG_MQTT_HOMEASSISTANT
+#include "home_assistant/home_assistant.h"
+#endif
+
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif
 
 static const char *TAG = "MQTT";
-char command_topic[256];
-char feedback_topic[256];
+static char command_topic[256];
+static char feedback_topic[256];
 
-size_t array_length = ARRAY_SIZE(id);
+static size_t array_length = ARRAY_SIZE(id);
 
-esp_mqtt_client_config_t mqtt_cfg = {
+static esp_mqtt_client_config_t mqtt_cfg = {
     .broker.address.uri = CONFIG_MQTT_BROKER_URL,
     .broker.address.port = CONFIG_MQTT_BROKER_PORT,
     .credentials.username = CONFIG_MQTT_USERNAME,
@@ -41,7 +49,7 @@ esp_mqtt_client_config_t mqtt_cfg = {
     .session.last_will.qos = CONFIG_MQTT_LWT_QOS,
     .session.last_will.retain = CONFIG_MQTT_LWT_RETAIN,
 };
-esp_mqtt_client_handle_t client;
+static esp_mqtt_client_handle_t client;
 
 
 /*
@@ -145,6 +153,9 @@ void mqtt_setup(){
     client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);
+#if CONFIG_MQTT_HOMEASSISTANT
+    home_assistant_setup();
+#endif
 }
 
 /*
@@ -189,10 +200,14 @@ void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
                     return;
             }
             char *payload = cJSON_Print(root);
-            esp_mqtt_client_publish(client, feedback_topic, payload, 0, 1, 0);
+            esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
 
             cJSON_Delete(root);
             free(payload);
+            
+#if !CONFIG_MQTT_HOMEASSISTANT
+            home_assistant_update("battery", type[i], &HMI.BatteryLevel.Act.Value);
+#endif
             break;
         }
     }
