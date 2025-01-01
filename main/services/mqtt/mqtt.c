@@ -205,8 +205,8 @@ void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
             cJSON_Delete(root);
             free(payload);
             
-#if !CONFIG_MQTT_HOMEASSISTANT
-            home_assistant_update("battery", type[i], &HMI.BatteryLevel.Act.Value);
+#if CONFIG_MQTT_HOMEASSISTANT
+            home_assistant_update(id[i], type[i], ptrToValue);
 #endif
             break;
         }

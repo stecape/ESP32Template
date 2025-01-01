@@ -9,9 +9,9 @@ _HMI HMI = {
 };
 
 int id[3] = {
-	596,
-	605,
-	606
+	3,
+	5,
+	6
 };
 
 int type[3] = {
@@ -22,6 +22,6 @@ int type[3] = {
 
 void *pointer[3] = {
 	(void*)&HMI.BatteryLevel.Act.Value,
-	(void*)&HMI.BatteryLevel.Limit.Max,
-	(void*)&HMI.BatteryLevel.Limit.Min
+	(void*)&HMI.BatteryLevel.Limit.Min,
+	(void*)&HMI.BatteryLevel.Limit.Max
 };

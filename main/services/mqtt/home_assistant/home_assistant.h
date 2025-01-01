@@ -10,6 +10,6 @@
 
 // Funzioni di setup e di scrittura delle variabili HMI dall'interno del software ESP32
 void home_assistant_setup(void);
-void home_assistant_update(char *device_id, int _type, void *ptrToValue);
+void home_assistant_update(int device_id, int _type, void *ptrToValue);
 
 #endif
