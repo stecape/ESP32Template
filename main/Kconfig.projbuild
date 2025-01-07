@@ -103,6 +103,13 @@ menu "Pot"
             help
                 Enable re-provisioning - allow the device to provision for new credentials
                 after previous successful provisioning.
+        
+        config RESET_PROVISIONING_GPIO
+            int
+            default 5
+            prompt "GPIO for reset provisioning"
+            help
+                GPIO to reset the provisioning credentials and state machine.
 
     endmenu
 

@@ -21,11 +21,16 @@
 #include <esp_wifi.h>
 #include <esp_event.h>
 #include <nvs_flash.h>
+#include "driver/gpio.h"
+#include "esp_timer.h"
 #include "esp_partition.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
 #include <wifi_provisioning/manager.h>
+
+#define BUTTON_GPIO_PIN CONFIG_RESET_PROVISIONING_GPIO
+#define REPROVISIONING_PRESS_TIME_MS 10000 // 10 seconds
 
 #ifdef CONFIG_PROV_TRANSPORT_BLE
 #include <wifi_provisioning/scheme_ble.h>
@@ -379,6 +384,7 @@ void wifi_provisioning(void)
     /* Initialize provisioning manager with the
      * configuration parameters set above */
     ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
+    ESP_ERROR_CHECK(wifi_prov_mgr_disable_auto_stop(1000));
 
     bool provisioned = false;
 #ifdef CONFIG_RESET_PROVISIONED
@@ -526,8 +532,10 @@ void wifi_provisioning(void)
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
 
         /* We don't need the manager as device is already provisioned,
-         * so let's release it's resources */
-        wifi_prov_mgr_deinit();
+         * so let's release it's resources.
+         * EDIT: We need to keep the manager running to enable re-provisioning
+         */
+        //wifi_prov_mgr_deinit();
 
         /* Start Wi-Fi station */
         wifi_init_sta();
@@ -642,12 +650,98 @@ void read_manufacturing_partition() {
 #endif
 #endif
 
+
+static esp_timer_handle_t reprovisioning_timer;
+static bool button_pressed = false;
+
+
+// Function to start reprovisioning
+void wifi_prov_start_reprovisioning(void)
+{
+    ESP_LOGI(TAG, "Starting reprovisioning...");
+
+    // Disable auto-stop of provisioning manager
+    esp_err_t err = wifi_prov_mgr_disable_auto_stop(0);
+    // if (err != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to disable auto-stop: %s", esp_err_to_name(err));
+    //     return;
+    // }
+
+    // Reset provisioning state machine
+    err = wifi_prov_mgr_reset_sm_state_for_reprovision();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to reset provisioning state: %s", esp_err_to_name(err));
+        return;
+    }
+
+    // Restore Wi-Fi configuration to default
+    err = esp_wifi_restore();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to restore Wi-Fi configuration: %s", esp_err_to_name(err));
+        return;
+    }
+
+    // Restart the device
+    esp_restart();
+}
+
+// Timer callback function
+static void reprovisioning_timer_callback(void* arg)
+{
+    if (button_pressed) {
+        wifi_prov_start_reprovisioning();
+    }
+}
+
+// Interrupt handler for the button
+static void IRAM_ATTR button_isr_handler(void* arg)
+{
+    if (gpio_get_level(BUTTON_GPIO_PIN) == 0) {
+        // Button pressed
+        if (!button_pressed) {
+            button_pressed = true;
+            esp_timer_start_once(reprovisioning_timer, REPROVISIONING_PRESS_TIME_MS * 1000);
+        }
+    } else {
+        // Button released
+        button_pressed = false;
+        esp_timer_stop(reprovisioning_timer);
+    }
+}
+
+// Function to initialize the button and timer
+void button_init(void)
+{
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_ANYEDGE,  // Interrupt on any edge
+        .mode = GPIO_MODE_INPUT,         // Set as input mode
+        .pin_bit_mask = (1ULL << BUTTON_GPIO_PIN), // Bit mask of the pin
+        .pull_up_en = GPIO_PULLUP_ENABLE // Enable pull-up
+    };
+    gpio_config(&io_conf);
+
+    // Install the ISR service
+    gpio_install_isr_service(0);
+
+    // Attach the interrupt handler
+    gpio_isr_handler_add(BUTTON_GPIO_PIN, button_isr_handler, NULL);
+
+    // Create the timer
+    const esp_timer_create_args_t timer_args = {
+        .callback = &reprovisioning_timer_callback,
+        .name = "reprovisioning_timer"
+    };
+    esp_timer_create(&timer_args, &reprovisioning_timer);
+}
+
+
 void Wifi_setup(){
 #if CONFIG_PROV_SECURITY_VERSION_2
 #if CONFIG_PROV_SEC2_PROD_MODE
   read_manufacturing_partition();
 #endif
 #endif
+  button_init();
   wifi_provisioning();
 
 }
