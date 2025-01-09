@@ -13,13 +13,13 @@
 #include "peripherials/led/led.h"
 #include "services/mqtt/mqtt.h"
 #include "services/Wifi/Wifi.h"
+#include "services/battery/battery.h"
 
 //Librerie per test
 #include <math.h>
 //Librerie per test
 
 #define CONFIG_INTERRUPT_CYCLE_TIME_S 5
-
 
 void setup() {
   // Setup calls
@@ -29,12 +29,14 @@ void setup() {
   Wifi_setup();
   mqtt_setup();
   led_setup();
+  battery_setup();
 }
 
 
 void loop() {
   // Loop calls
   led_loop();
+  battery_loop(&HMI.BatteryLevel.Act.Value, &HMI.BatteryLevel.Limit.Min, &HMI.BatteryLevel.Limit.Max);
 
 }
 
@@ -42,13 +44,6 @@ void loop() {
 void interrupt() {
   // Interrupt calls
   led_interrupt();
-  float val = round((float)rand() / RAND_MAX * 1000.0)/10.0;
-  mqtt_updHMI(&HMI.BatteryLevel.Act.Value, &val);
-  float max_val = 100.0;
-  mqtt_updHMI(&HMI.BatteryLevel.Limit.Max, &max_val);
-  float min_val = 0.0;
-  mqtt_updHMI(&HMI.BatteryLevel.Limit.Min, &min_val);
-
 }
 
 

@@ -1,2 +1,2 @@
-idf_component_register(SRCS "HMI.c" "main.c" "peripherials/led/led.c" "services/mqtt/mqtt.c" "services/mqtt/home_assistant/home_assistant.c" "services/Wifi/Wifi.c"
-                       INCLUDE_DIRS "." "peripherials/led" "services/mqtt" "services/Wifi")
+idf_component_register(SRCS "HMI.c" "main.c" "peripherials/led/led.c" "services/battery/battery.c" "services/mqtt/mqtt.c" "services/mqtt/home_assistant/home_assistant.c" "services/Wifi/Wifi.c"
+                       INCLUDE_DIRS "." "peripherials/led" "services/battery" "services/mqtt" "services/Wifi")
