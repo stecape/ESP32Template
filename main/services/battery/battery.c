@@ -17,12 +17,13 @@ float readBatteryVoltage() {
     ESP_LOGE(TAG, "Failed to read ADC: %s", esp_err_to_name(err));
     return -1.0; // Return an invalid voltage
   }
+  ESP_LOGI(TAG, "ADC reading: %d V", raw); // Log the voltage
   float voltage = raw * 2 * 3.3 / 4096;  // Compensa il partitore di tensione e converte in volt
   return voltage;
 }
 
 float calculateBatteryPercentage(float voltage) {
-  float minVoltage = 3.2;
+  float minVoltage = 3.0;
   float maxVoltage = 4.2;
   float percentage = (voltage - minVoltage) / (maxVoltage - minVoltage) * 100;
   if (percentage > 100.0) {
@@ -66,6 +67,7 @@ void battery_loop(float *value, float *min, float *max){
     ESP_LOGE(TAG, "Invalid battery voltage");
     return;
   }
+  ESP_LOGI(TAG, "Battery voltage: %.2f V", voltage); // Log the voltage
   float percentage = calculateBatteryPercentage(voltage);
   float max_val = 100.0;
   float min_val = 0.0;
