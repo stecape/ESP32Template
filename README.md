@@ -54,3 +54,15 @@ We will get back to you as soon as possible.
 
 
 python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset  --port COM3 write_flash --flash_mode dio --flash_size detect --flash_freq 40m 0x1000 bootloader/bootloader.bin 0x10000 HelloWorld.bin 0x8000 partition_table/partition-table.bin 0x110000 ../ManufacturingData/bin/prefix-1.bin
+
+
+#Run in container: dopo il clone, ho aperto un terminal ESP-IDF e ho seguito i due step seguenti:
+1- Run the following CMake command to configure the project and generate the build.ninja file:
+    cmake -S . -B build
+2- After the configuration is complete, you can build the project using ninja:
+    ninja -C build
+
+Da quel momento ha iniziato a compilare perfettamente.
+
+Da li in poi bisogna inoltrare la porta USB a WSL per poter flashare:
+https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/additionalfeatures/docker-container.html
