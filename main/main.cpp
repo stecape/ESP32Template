@@ -67,19 +67,24 @@ void init_timer() {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = 1000000, // 1 MHz per ottenere microsecondi
+        .intr_priority = 0, // Inizializza intr_priority
+        .flags = {}, // Initialize flags to default values
     };
     gptimer_alarm_config_t alarm_config = {
         .alarm_count = CONFIG_INTERRUPT_CYCLE_TIME_S * 1000000, // 5 secondi (5 milioni di microsecondi)
         .reload_count = 0,
-        .flags.auto_reload_on_alarm = true,
+        .flags = {
+            .auto_reload_on_alarm = true,
+        },
     };
 
     // Creazione e configurazione del timer
     ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &gptimer));
     ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
-    ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &(gptimer_event_callbacks_t){
+    gptimer_event_callbacks_t timer_callbacks = {
         .on_alarm = timer_isr_callback,
-    }, NULL));
+    };
+    ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &timer_callbacks, NULL));
     ESP_ERROR_CHECK(gptimer_enable(gptimer));
     ESP_ERROR_CHECK(gptimer_start(gptimer));
 }
@@ -93,7 +98,7 @@ void interrupt_task(void *arg) {
   }
 }
 
-void app_main(void) {
+extern "C" void app_main(void) {
   // Inizializza in timer
   init_timer();
   // Creazione del task dedicato

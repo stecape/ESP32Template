@@ -5,11 +5,19 @@
 #ifndef home_assistant_h
 #define home_assistant_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "esp_log.h"
 #include "mqtt_client.h"
 
 // Funzioni di setup e di scrittura delle variabili HMI dall'interno del software ESP32
 void home_assistant_setup(void);
 void home_assistant_update(int device_id, int _type, void *ptrToValue);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

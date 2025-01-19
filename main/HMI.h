@@ -1,6 +1,10 @@
 #ifndef HMI_h
 #define HMI_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "time.h"
 
 #define REAL 1
@@ -62,5 +66,9 @@ extern _HMI HMI;
 extern int id[3];
 extern int type[3];
 extern void *pointer[3];
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

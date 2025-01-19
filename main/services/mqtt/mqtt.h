@@ -5,11 +5,19 @@
 #ifndef mqtt_h
 #define mqtt_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "esp_log.h"
 #include "mqtt_client.h"
 
 // Funzioni di setup e di scrittura delle variabili HMI dall'interno del software ESP32
 void mqtt_setup(void);
 void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
