@@ -80,11 +80,15 @@ static void mqtt_receive(esp_mqtt_event_handle_t event){
         cJSON_Delete(root);
         return;
     }
-
+    
+    
     int id_value = id_json->valueint;
     double value = value_json->valuedouble;
+    
+    ESP_LOGI(TAG, "Received ID: %d", id_value);
+    ESP_LOGI(TAG, "Received Value: %f", value);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < ARRAY_SIZE(id); i++) {
         if (id[i] == id_value) {
             switch (type[i]) {
                 case REAL:

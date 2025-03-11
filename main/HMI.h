@@ -56,11 +56,13 @@ typedef struct {
 
 typedef struct {
 	Act BatteryLevel;
+	LogicSelection Light;
+	Set Temperature;
 } _HMI;
 extern _HMI HMI;
 
-extern int id[3];
-extern int type[3];
-extern void *pointer[3];
+extern int id[9];
+extern int type[9];
+extern void *pointer[9];
 
 #endif

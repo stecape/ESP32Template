@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "esp_event.h"
 #include "HMI.h"
+#include "sclib/hmi_tools/hmi_tools.h"
 #include "peripherials/led/led.h"
 #include "services/mqtt/mqtt.h"
 #include "services/Wifi/Wifi.h"
@@ -37,7 +38,8 @@ void loop() {
   // Loop calls
   led_loop();
   battery_loop(&HMI.BatteryLevel.Act.Value, &HMI.BatteryLevel.Limit.Min, &HMI.BatteryLevel.Limit.Max);
-
+  sclib_logic(&HMI.Light);
+  sclib_Set(&HMI.Temperature, 0, 0.0, 0);
 }
 
 

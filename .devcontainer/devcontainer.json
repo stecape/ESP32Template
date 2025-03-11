@@ -32,5 +32,8 @@
 			]
 		}
 	},
-	"runArgs": ["--privileged"]
+	"runArgs": [
+						"--privileged",
+						"--device=/dev/ttyACM0"
+					]
 }

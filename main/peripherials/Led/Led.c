@@ -1,4 +1,5 @@
 #include "LED.h"
+#include "../../../HMI.h"
 
 static const char *TAG = "LED";
 
@@ -26,7 +27,14 @@ void led_loop(){
     }
   }
 
-  gpio_set_level(GPIO_NUM_13, inLevel);
+  //gpio_set_level(GPIO_NUM_13, inLevel); //Original behavior before HMI
+
+  //Led is controlled by HMI
+  if (HMI.Light.Status == 2){
+    gpio_set_level(GPIO_NUM_13, true);
+  } else {
+    gpio_set_level(GPIO_NUM_13, false);
+  }
 }
 
 void led_interrupt(){

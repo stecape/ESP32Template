@@ -7,6 +7,7 @@
 void sclib_logic (LogicSelection *logic_selection) {
   for (int i = 0; i < 8; i++) {
     if (1 & (logic_selection->Command >> i)) {
+      ESP_LOGI("DEBUG", "Received Value: %d", logic_selection->Command);
       mqtt_updHMI(&logic_selection->Status, &logic_selection->Command);
       int command = 0;
       mqtt_updHMI(&logic_selection->Command, &command);
@@ -538,6 +539,91 @@ void sclib_logic_generic(LogicSelection *logic_selection, uint8_t *force, uint8_
           int command = 0;
           mqtt_updHMI(&logic_selection->Command, &command);
           break;
+        }
+      }
+    }
+  }
+}
+
+
+
+// Funzione generica per gestire un Set
+void sclib_Set(Set *set, int force, float forceValue, int NotAllowed) {
+  float _forceValue = forceValue;
+
+  //Min and Max check
+  if (set->Limit.Min > set->Limit.Max || set->Limit.Min == set->Limit.Max) {
+    return;
+  }
+
+  //Initialization
+  if (set->Set.Value > set->Limit.Max || set->Set.Value < set->Limit.Min) {
+    mqtt_updHMI(&set->Set.Value, &set->Set.InputValue);
+  } 
+
+  //Forced value
+  if (force) {
+    if (forceValue != set->Set.Value) {
+      if (forceValue <= set->Limit.Max && forceValue >= set->Limit.Min) {
+        mqtt_updHMI(&set->Set.Value, &_forceValue);
+        mqtt_updHMI(&set->Set.InputValue, &_forceValue);
+      }
+    }
+  } else {
+    if (set->Set.InputValue != set->Set.Value) {
+      // Check if the value inputing is allowed
+      if (NotAllowed){
+        mqtt_updHMI(&set->Set.InputValue, &set->Set.Value);
+      } else {
+        // If allowed, check if the value is in the range
+        if (set->Set.InputValue <= set->Limit.Max && set->Set.InputValue >= set->Limit.Min) {
+          // If is in range, update the value
+          mqtt_updHMI(&set->Set.Value, &set->Set.InputValue);
+        } else {
+          // If is not in range, update the input value with the current value
+          mqtt_updHMI(&set->Set.InputValue, &set->Set.Value);
+        }
+      }
+    }
+  }
+}
+
+
+// Funzione generica per gestire un SetAct
+void sclib_SetAct(SetAct *setact, int force, float forceValue, int NotAllowed) {
+  float _forceValue = forceValue;
+
+  //Min and Max check
+  if (setact->Limit.Min > setact->Limit.Max || setact->Limit.Min == setact->Limit.Max) {
+    return;
+  }
+
+  //Initialization
+  if (setact->Set.Value > setact->Limit.Max || setact->Set.Value < setact->Limit.Min) {
+    mqtt_updHMI(&setact->Set.Value, &setact->Set.InputValue);
+  } 
+
+  //Forced value
+  if (force) {
+    if (forceValue != setact->Set.Value) {
+      if (forceValue <= setact->Limit.Max && forceValue >= setact->Limit.Min) {
+        mqtt_updHMI(&setact->Set.Value, &_forceValue);
+        mqtt_updHMI(&setact->Set.InputValue, &_forceValue);
+      }
+    }
+  } else {
+    if (setact->Set.InputValue != setact->Set.Value) {
+      // Check if the value inputing is allowed
+      if (NotAllowed){
+        mqtt_updHMI(&setact->Set.InputValue, &setact->Set.Value);
+      } else {
+        // If allowed, check if the value is in the range
+        if (setact->Set.InputValue <= setact->Limit.Max && setact->Set.InputValue >= setact->Limit.Min) {
+          // If is in range, update the value
+          mqtt_updHMI(&setact->Set.Value, &setact->Set.InputValue);
+        } else {
+          // If is not in range, update the input value with the current value
+          mqtt_updHMI(&setact->Set.InputValue, &setact->Set.Value);
         }
       }
     }
