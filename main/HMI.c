@@ -3,8 +3,8 @@
 _HMI HMI = {
 	.BatteryLevel = {
 		.Act.Value = 0,
-		.Limit.Min = 0,
 		.Limit.Max = 0,
+		.Limit.Min = 0,
 	},
 	.Light = {
 		.Command = 0,
@@ -25,7 +25,7 @@ int id[9] = {
 	8,
 	9,
 	12,
-	14,
+	13,
 	15,
 	16
 };
@@ -44,8 +44,8 @@ int type[9] = {
 
 void *pointer[9] = {
 	(void*)&HMI.BatteryLevel.Act.Value,
-	(void*)&HMI.BatteryLevel.Limit.Min,
 	(void*)&HMI.BatteryLevel.Limit.Max,
+	(void*)&HMI.BatteryLevel.Limit.Min,
 	(void*)&HMI.Light.Command,
 	(void*)&HMI.Light.Status,
 	(void*)&HMI.Temperature.Set.InputValue,

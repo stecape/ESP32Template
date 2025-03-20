@@ -32,3 +32,7 @@ core
 # File di configurazione di CLion
 cmake-build-debug/
 cmake-build-release/
+
+# File di HMI che vengono generati dal front-end 
+main/HMI.c
+main/HMI.h
