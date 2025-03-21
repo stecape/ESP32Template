@@ -5,6 +5,13 @@
 #define _RESET 2
 
 void sclib_logic (LogicSelection *logic_selection) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+    ESP_LOGI("DEBUG", "Status initialization: %d", logic_selection->Status);
+  }
+  //management
   for (int i = 0; i < 8; i++) {
     if (1 & (logic_selection->Command >> i)) {
       ESP_LOGI("DEBUG", "Received Value: %d", logic_selection->Command);
@@ -17,6 +24,12 @@ void sclib_logic (LogicSelection *logic_selection) {
 }
 
 void sclib_logic_SR (LogicSelection *logic_selection, int resetNotAllowed, int resetForced, int setNotAllowed, int setForced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (resetForced){
     logic_selection->Status = _RESET;
@@ -50,6 +63,12 @@ void sclib_logic_SR (LogicSelection *logic_selection, int resetNotAllowed, int r
 }
 
 void sclib_logic_2 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (_1Forced){
     logic_selection->Status = 1;
@@ -83,6 +102,12 @@ void sclib_logic_2 (LogicSelection *logic_selection, int _1NotAllowed, int _1For
 }
 
 void sclib_logic_3 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced, int _3NotAllowed, int _3Forced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (_1Forced){
     logic_selection->Status = 1;
@@ -127,6 +152,12 @@ void sclib_logic_3 (LogicSelection *logic_selection, int _1NotAllowed, int _1For
 }
 
 void sclib_logic_4 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced, int _3NotAllowed, int _3Forced, int _4NotAllowed, int _4Forced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (_1Forced){
     logic_selection->Status = 1;
@@ -182,6 +213,12 @@ void sclib_logic_4 (LogicSelection *logic_selection, int _1NotAllowed, int _1For
 }
 
 void sclib_logic_5 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced, int _3NotAllowed, int _3Forced, int _4NotAllowed, int _4Forced, int _5NotAllowed, int _5Forced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (_1Forced){
     logic_selection->Status = 1;
@@ -248,6 +285,12 @@ void sclib_logic_5 (LogicSelection *logic_selection, int _1NotAllowed, int _1For
 }
 
 void sclib_logic_6 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced, int _3NotAllowed, int _3Forced, int _4NotAllowed, int _4Forced, int _5NotAllowed, int _5Forced, int _6NotAllowed, int _6Forced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (_1Forced){
     logic_selection->Status = 1;
@@ -325,6 +368,12 @@ void sclib_logic_6 (LogicSelection *logic_selection, int _1NotAllowed, int _1For
 }
 
 void sclib_logic_7 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced, int _3NotAllowed, int _3Forced, int _4NotAllowed, int _4Forced, int _5NotAllowed, int _5Forced, int _6NotAllowed, int _6Forced, int _7NotAllowed, int _7Forced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (_1Forced){
     logic_selection->Status = 1;
@@ -413,6 +462,12 @@ void sclib_logic_7 (LogicSelection *logic_selection, int _1NotAllowed, int _1For
 }
 
 void sclib_logic_8 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced, int _3NotAllowed, int _3Forced, int _4NotAllowed, int _4Forced, int _5NotAllowed, int _5Forced, int _6NotAllowed, int _6Forced, int _7NotAllowed, int _7Forced, int _8NotAllowed, int _8Forced) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int command = 0;
   if (_1Forced){
     logic_selection->Status = 1;
@@ -518,6 +573,12 @@ int get_bit_value(uint8_t number, int bit_position) {
 
 // Funzione generica per gestire la logic selection
 void sclib_logic_generic(LogicSelection *logic_selection, uint8_t *force, uint8_t *NotAllowed) {
+  //initialization
+  if (logic_selection->Status == 0){
+    int status = 1;
+    mqtt_updHMI(&logic_selection->Status, &status);
+  }
+  //management
   int forced = 0;
   for (int i = 0; i < 8; i++) {
     int force_bit = get_bit_value(*force, i);

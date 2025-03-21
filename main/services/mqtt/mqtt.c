@@ -45,12 +45,56 @@ static esp_mqtt_client_config_t mqtt_cfg = {
     .session.disable_clean_session = CONFIG_MQTT_DISABLE_CLEAN_SESSION,
     .network.reconnect_timeout_ms = CONFIG_MQTT_RECONNECT_TIMEOUT * 1000,
     .session.last_will.topic = CONFIG_MQTT_LWT_TOPIC,
-    .session.last_will.msg = CONFIG_MQTT_LWT_MSG,
     .session.last_will.qos = CONFIG_MQTT_LWT_QOS,
     .session.last_will.retain = CONFIG_MQTT_LWT_RETAIN,
 };
 static esp_mqtt_client_handle_t client;
 
+/*
+    Funzione di receive di una system call.
+    Se l'ID è 0 allora si tratta di una system call.
+    Per esempio la system call 1 è la richiesta di un reboot.
+    La system call 2 è la richiesta di refresh di tutte le variabili. 
+    La system call 3 è la richiesta di ping.
+*/
+
+static void mqtt_system_call(uint8_t call_id) {
+    switch (call_id) {
+        case 1:
+            ESP_LOGI(TAG, "Rebooting...");
+            esp_restart();
+            break;
+        case 2:
+            ESP_LOGI(TAG, "Refreshing all variables...");
+            for (size_t i = 0; i < array_length; i++) {
+                mqtt_updHMI(pointer[i], pointer[i]);
+            }
+            break;
+        case 3:
+            ESP_LOGI(TAG, "Pinging...");
+            mqtt_ping();
+            break;
+        default:
+            ESP_LOGE(TAG, "Unknown system call");
+            break;
+    }
+}
+
+/*
+    Funzione di ping.
+    Viene inviato un messaggio di ping al broker.
+*/
+void mqtt_ping() {
+    // Crea il payload come stringa
+    char payload[64]; // Assicurati che il buffer sia abbastanza grande
+    snprintf(payload, sizeof(payload), "{\"id\": %d, \"value\": %d, \"deviceId\": \"%s\"}", 0, 3, CONFIG_MQTT_CLIENT_ID);
+
+    // Pubblica il payload tramite MQTT
+    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+
+    // Log del payload per debug
+    ESP_LOGI(TAG, "Sent payload: %s", payload);
+}
 
 /*
     Funzione di receive.
@@ -88,6 +132,14 @@ static void mqtt_receive(esp_mqtt_event_handle_t event){
     ESP_LOGI(TAG, "Received ID: %d", id_value);
     ESP_LOGI(TAG, "Received Value: %f", value);
 
+    // System call: ID = 0
+    if (id_value == 0) {
+        mqtt_system_call((uint8_t)value);
+        cJSON_Delete(root);
+        return;
+    }
+
+    // HMI variable update
     for (int i = 0; i < ARRAY_SIZE(id); i++) {
         if (id[i] == id_value) {
             switch (type[i]) {
@@ -133,7 +185,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             msg_id = esp_mqtt_client_subscribe(client, command_topic, CONFIG_MQTT_QOS);
             msg_id = esp_mqtt_client_subscribe(client, CONFIG_MQTT_COMMAND_TOPIC_BROADCAST, CONFIG_MQTT_QOS);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-            msg_id = esp_mqtt_client_publish(client, CONFIG_MQTT_BIRTH_TOPIC, CONFIG_MQTT_BIRTH_MSG, 0, CONFIG_MQTT_BIRTH_QOS, CONFIG_MQTT_BIRTH_RETAIN);
+            // INVIA IL MESSAGGIO DI BIRTH
+            char birth_message[64]; // Assicurati che il buffer sia abbastanza grande
+            snprintf(birth_message, sizeof(birth_message), "{\"deviceId\": \"%s\"}", CONFIG_MQTT_CLIENT_ID);
+            msg_id = esp_mqtt_client_publish(client, CONFIG_MQTT_BIRTH_TOPIC, birth_message, 0, CONFIG_MQTT_BIRTH_QOS, CONFIG_MQTT_BIRTH_RETAIN);
             ESP_LOGI(TAG, "sent birth message, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_DISCONNECTED:
@@ -154,6 +209,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 // Funzione di configurazione della sessione MQTT
 void mqtt_setup(){
+    // Crea il lwt_message come stringa
+    char lwt_message[64]; // Assicurati che il buffer sia abbastanza grande
+    snprintf(lwt_message, sizeof(lwt_message), "{\"deviceId\": \"%s\"}", CONFIG_MQTT_CLIENT_ID);
+    // aggiorna mqtt_cfg con il messaggio lwt
+    mqtt_cfg.session.last_will.msg = lwt_message;
     client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);
