@@ -15,5 +15,7 @@ void sclib_logic_8 (LogicSelection *logic_selection, int _1NotAllowed, int _1For
 void sclib_logic_generic(LogicSelection *logic_selection, uint8_t *force, uint8_t *NotAllowed);
 void sclib_Set(Set *set, int force, float forceValue, int NotAllowed);
 void sclib_SetAct(SetAct *setact, int force, float forceValue, int NotAllowed);
+void sclib_writeAct(Act *act, float value);
+void sclib_writeSetAct(SetAct *setact, float value);
 
 #endif

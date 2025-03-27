@@ -1,6 +1,7 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "../../HMI.h"
+#include "../../sclib/hmi_tools/hmi_tools.h"
 #include "../mqtt/mqtt.h"
 #include "esp_log.h"
 
@@ -8,7 +9,6 @@
 
 static const char *TAG = "battery";
 static adc_oneshot_unit_handle_t adc1_handle;
-static int64_t prevTime = 0;
 
 float readBatteryVoltage() {
   int raw;
@@ -17,7 +17,6 @@ float readBatteryVoltage() {
     ESP_LOGE(TAG, "Failed to read ADC: %s", esp_err_to_name(err));
     return -1.0; // Return an invalid voltage
   }
-  ESP_LOGI(TAG, "ADC reading: %d V", raw); // Log the voltage
   float voltage = raw * 2 * 3.3 / 4096;  // Compensa il partitore di tensione e converte in volt
   return voltage;
 }
@@ -56,22 +55,12 @@ void battery_setup() {
 }
 
 // Funzione di loop dei GPIO della batteria
-void battery_loop(float *value, float *min, float *max){
-  int64_t currentTime = time(NULL); // Get time in seconds
-  if (currentTime - prevTime < 5) { // Update every 5 seconds
-    return;
-  }
-  prevTime = currentTime;
+void battery_loop(Act *act){
   float voltage = readBatteryVoltage();
   if (voltage < 0) {
     ESP_LOGE(TAG, "Invalid battery voltage");
     return;
   }
-  ESP_LOGI(TAG, "Battery voltage: %.2f V", voltage); // Log the voltage
   float percentage = calculateBatteryPercentage(voltage);
-  float max_val = 100.0;
-  float min_val = 0.0;
-  mqtt_updHMI(value, &percentage);
-  mqtt_updHMI(max, &max_val);
-  mqtt_updHMI(min, &min_val);
+  sclib_writeAct(act, percentage);
 }

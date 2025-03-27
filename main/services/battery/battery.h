@@ -3,6 +3,6 @@
 
 // Funzioni di setup e di scrittura delle variabili HMI dall'interno del software ESP32
 void battery_setup(void);
-void battery_loop(float *value, float *min, float *max);
+void battery_loop(Act *act);
 
 #endif

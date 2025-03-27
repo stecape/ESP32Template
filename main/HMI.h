@@ -15,6 +15,7 @@ typedef struct {
 } _Set;
 
 typedef struct {
+	float HMIValue;
 	float Value;
 } _Act;
 
@@ -26,17 +27,20 @@ typedef struct {
 typedef struct {
 	_Set Set;
 	_Limit Limit;
+	int Decimals;
 } Set;
 
 typedef struct {
 	_Act Act;
 	_Limit Limit;
+	int Decimals;
 } Act;
 
 typedef struct {
 	_Set Set;
 	_Act Act;
 	_Limit Limit;
+	int Decimals;
 } SetAct;
 
 typedef struct {
@@ -58,11 +62,14 @@ typedef struct {
 	Act BatteryLevel;
 	LogicSelection Light;
 	Set Temperature;
+	SetAct Pressure;
 } _HMI;
 extern _HMI HMI;
+extern _HMI PLC;
 
-extern int id[9];
-extern int type[9];
-extern void *pointer[9];
+extern int id[19];
+extern int type[19];
+extern void *HMI_pointer[19];
+extern void *PLC_pointer[19];
 
 #endif

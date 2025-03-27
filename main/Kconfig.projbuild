@@ -236,7 +236,13 @@ menu "Pot"
             bool "MQTT LWT Retain"
             default n
             help
-                Retain flag for Last Will and Testament.
+                Retain flag for Last Will and Testament.                
+
+        config MQTT_REFRESH_INTERVAL
+            int "MQTT Refresh Interval"
+            default 250000
+            help
+                Intervallo di tempo in microsecondi per l'invio dei dati al broker MQTT.
     endmenu
 
     menu "Pot - HomeAssistant"

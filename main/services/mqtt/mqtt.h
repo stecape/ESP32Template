@@ -10,7 +10,7 @@
 
 // Funzioni di setup e di scrittura delle variabili HMI dall'interno del software ESP32
 void mqtt_setup(void);
-void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue);
+void mqtt_updHMI(bool force);
 void mqtt_ping(void);
 
 #endif

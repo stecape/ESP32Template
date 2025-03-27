@@ -5,6 +5,7 @@
 #include <cJSON.h>
 #include "HMI.h"
 #include <math.h>
+#include "esp_timer.h"
 
 #ifndef CONFIG_MQTT_LWT_RETAIN
 #define CONFIG_MQTT_LWT_RETAIN 0
@@ -33,6 +34,8 @@
 static const char *TAG = "MQTT";
 static char command_topic[256];
 static char feedback_topic[256];
+
+int64_t last_update_time = 0;
 
 static size_t array_length = ARRAY_SIZE(id);
 
@@ -66,9 +69,7 @@ static void mqtt_system_call(uint8_t call_id) {
             break;
         case 2:
             ESP_LOGI(TAG, "Refreshing all variables...");
-            for (size_t i = 0; i < array_length; i++) {
-                mqtt_updHMI(pointer[i], pointer[i]);
-            }
+            mqtt_updHMI(true);
             break;
         case 3:
             ESP_LOGI(TAG, "Pinging...");
@@ -144,13 +145,16 @@ static void mqtt_receive(esp_mqtt_event_handle_t event){
         if (id[i] == id_value) {
             switch (type[i]) {
                 case REAL:
-                    *(float *)pointer[i] = (float)value;
+                    *(float *)HMI_pointer[i] = (float)value;
+                    *(float *)PLC_pointer[i] = (float)value;
                     break;
                 case INT:
-                    *(int *)pointer[i] = (int)value;
+                    *(int *)HMI_pointer[i] = (int)value;
+                    *(int *)PLC_pointer[i] = (int)value;
                     break;
                 case BOOL:
-                    *(int *)pointer[i] = (value != 0);
+                    *(int *)HMI_pointer[i] = (value != 0);
+                    *(int *)PLC_pointer[i] = (value != 0);
                     break;
                 case STRING:
                     // Gestione delle stringhe se necessario
@@ -230,49 +234,72 @@ void mqtt_setup(){
     xxx,yyy
     zzz,aaa
 */
-void mqtt_updHMI(void *ptrToHMIVar, void *ptrToValue) {
-    cJSON *root = cJSON_CreateObject();
-    for (size_t i = 0; i < array_length; i++) {
-        if (pointer[i] == ptrToHMIVar) {
-            cJSON_AddNumberToObject(root, "id", id[i]);
-            switch (type[i]) {
-                case REAL: {
-                    *(float *)ptrToHMIVar = *(float *)ptrToValue;
-                    double rounded_value = round(*(float *)ptrToValue * 10000) / 10000;
-                    cJSON_AddNumberToObject(root, "value", rounded_value);
-                    break;
-                }
-                case INT: {
-                    *(int *)ptrToHMIVar = *(int *)ptrToValue;
-                    cJSON_AddNumberToObject(root, "value", (double)*(int *)ptrToValue);
-                    break;
-                }
-                case BOOL: {
-                    *(int *)ptrToHMIVar = (*(int *)ptrToValue != 0);
-                    cJSON_AddBoolToObject(root, "value", (*(int *)ptrToValue != 0));
-                    break;
-                }
-                case STRING:
-                    // Gestione delle stringhe se necessario
-                    break;
-                case TIMESTAMP:
-                    // Gestione dei timestamp se necessario
-                    break;
-                default:
-                    ESP_LOGE(TAG, "Unknown type");
-                    cJSON_Delete(root);
-                    return;
-            }
-            char *payload = cJSON_Print(root);
-            esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+void mqtt_updHMI(bool force) {
 
-            cJSON_Delete(root);
-            free(payload);
-            
-#if CONFIG_MQTT_HOMEASSISTANT
-            home_assistant_update(id[i], type[i], ptrToValue);
-#endif
-            break;
+    int64_t current_time = esp_timer_get_time(); // Ottieni il timestamp corrente in microsecondi
+
+    // Controlla se sono passati almeno 250 ms (CONFIG_MQTT_REFRESH_INTERVAL microsecondi) dall'ultimo aggiornamento
+    if (!force && (current_time - last_update_time < CONFIG_MQTT_REFRESH_INTERVAL)) {
+        return; // Esci dalla funzione se non è necessario aggiornare
+    }
+
+    // Aggiorna il timestamp dell'ultimo aggiornamento
+    last_update_time = current_time;
+
+    for (size_t i = 0; i < array_length; i++) {
+        switch (type[i]) {
+            case REAL: {
+                if (*(float *)HMI_pointer[i] != *(float *)PLC_pointer[i] || force) {
+                    cJSON *root = cJSON_CreateObject();
+                    cJSON_AddNumberToObject(root, "id", id[i]);
+                    *(float *)HMI_pointer[i] = *(float *)PLC_pointer[i];
+                    cJSON_AddNumberToObject(root, "value", *(float *)PLC_pointer[i]);
+                    char *payload = cJSON_Print(root);
+                    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+                    cJSON_Delete(root);
+                    free(payload);
+                }
+                break;
+            }
+            case INT: {
+                if (*(int *)HMI_pointer[i] != *(int *)PLC_pointer[i] || force) {
+                    cJSON *root = cJSON_CreateObject();
+                    cJSON_AddNumberToObject(root, "id", id[i]);
+                    *(int *)HMI_pointer[i] = *(int *)PLC_pointer[i];
+                    cJSON_AddNumberToObject(root, "value", (double)*(int *)PLC_pointer[i]);
+                    char *payload = cJSON_Print(root);
+                    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+                    cJSON_Delete(root);
+                    free(payload);
+                }
+                break;
+            }
+            case BOOL: {
+                if (*(int *)HMI_pointer[i] != *(int *)PLC_pointer[i] || force) {
+                    cJSON *root = cJSON_CreateObject();
+                    cJSON_AddNumberToObject(root, "id", id[i]);
+                    *(int *)HMI_pointer[i] = *(int *)PLC_pointer[i];
+                    cJSON_AddBoolToObject(root, "value", *(int *)PLC_pointer[i] != 0);
+                    char *payload = cJSON_Print(root);
+                    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+                    cJSON_Delete(root);
+                    free(payload);
+                }
+                break;
+            }
+            case STRING:
+                // Gestione delle stringhe se necessario
+                break;
+            case TIMESTAMP:
+                // Gestione dei timestamp se necessario
+                break;
+            default:
+                ESP_LOGE(TAG, "Unknown type");
+                return;
         }
+        
+#if CONFIG_MQTT_HOMEASSISTANT
+        //home_assistant_update(id[i], type[i], ptrToValue);
+#endif
     }
 }

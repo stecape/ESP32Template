@@ -37,9 +37,12 @@ void setup() {
 void loop() {
   // Loop calls
   led_loop();
-  battery_loop(&HMI.BatteryLevel.Act.Value, &HMI.BatteryLevel.Limit.Min, &HMI.BatteryLevel.Limit.Max);
-  sclib_logic(&HMI.Light);
-  sclib_Set(&HMI.Temperature, 0, 0.0, 0);
+  battery_loop(&PLC.BatteryLevel);
+  sclib_logic(&PLC.Light);
+  sclib_Set(&PLC.Temperature, 0, 0.0, 0);
+  sclib_SetAct(&PLC.Pressure, 0, 0.0, 0);
+  sclib_writeSetAct(&PLC.Pressure, 7.0);
+  mqtt_updHMI(false);
 }
 
 
