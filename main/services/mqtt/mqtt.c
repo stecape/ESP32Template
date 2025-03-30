@@ -54,6 +54,34 @@ static esp_mqtt_client_config_t mqtt_cfg = {
 };
 static esp_mqtt_client_handle_t client;
 
+
+/*
+    Funzione di ping.
+    Viene inviato un messaggio di ping al broker.
+*/
+void mqtt_ping() {
+    // Crea il payload come stringa
+    char payload[64]; // Assicurati che il buffer sia abbastanza grande
+    snprintf(payload, sizeof(payload), "{\"id\": %d, \"value\": %d, \"deviceId\": \"%s\"}", 0, 3, CONFIG_MQTT_CLIENT_ID);
+
+    // Pubblica il payload tramite MQTT
+    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+}
+
+/*
+    Funzione di richiesta dell'offset UTC.
+    Viene inviato un messaggio di risposta alla richiesta del time UTC al broker.
+*/
+void mqtt_utc_offset() {
+    // Crea il payload come stringa
+    char payload[128]; // Assicurati che il buffer sia abbastanza grande
+    int64_t current_time = esp_timer_get_time() / 1000; // Ottieni il timestamp corrente in millisecondi
+    snprintf(payload, sizeof(payload), "{\"id\": %d, \"value\": %d, \"utc_offset\": %lld, \"deviceId\": \"%s\"}", 0, 5, current_time, CONFIG_MQTT_CLIENT_ID);
+
+    // Pubblica il payload tramite MQTT
+    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+};
+
 /*
     Funzione di receive di una system call.
     Se l'ID è 0 allora si tratta di una system call.
@@ -82,28 +110,12 @@ static void mqtt_system_call(uint8_t call_id) {
         break;
         case 5:
             ESP_LOGI(TAG, "Set date and time...");
-            // Set the date and time here
+            mqtt_utc_offset();
         break;
         default:
             ESP_LOGE(TAG, "Unknown system call");
             break;
     }
-}
-
-/*
-    Funzione di ping.
-    Viene inviato un messaggio di ping al broker.
-*/
-void mqtt_ping() {
-    // Crea il payload come stringa
-    char payload[64]; // Assicurati che il buffer sia abbastanza grande
-    snprintf(payload, sizeof(payload), "{\"id\": %d, \"value\": %d, \"deviceId\": \"%s\"}", 0, 3, CONFIG_MQTT_CLIENT_ID);
-
-    // Pubblica il payload tramite MQTT
-    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
-
-    // Log del payload per debug
-    ESP_LOGI(TAG, "Sent payload: %s", payload);
 }
 
 /*

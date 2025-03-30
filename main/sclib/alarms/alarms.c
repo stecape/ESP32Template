@@ -24,11 +24,11 @@ void check_alarms(void) {
 void alarm (Alarm *alarm, bool execute, AlarmReaction reaction) {
   if (alarm->Reaction == ALARM_REACTION_NO_REACTION) {
     alarm->Reaction = reaction;
-    alarm->Ts = esp_timer_get_time();
+    alarm->Ts = esp_timer_get_time()/1000;
   }
   if (alarm->Status == ALARM_STATUS_INACTIVE && execute) {
     alarm->Status = ALARM_STATUS_ACTIVE;
-    alarm->Ts = esp_timer_get_time();
+    alarm->Ts = esp_timer_get_time()/1000;
     // Inviare un messaggio MQTT o eseguire altre azioni
   } else if (alarm->Status == ALARM_STATUS_ACTIVE && alarmsAck) {
     alarm->Status = ALARM_STATUS_ACKNOWLEDGED;
@@ -36,13 +36,13 @@ void alarm (Alarm *alarm, bool execute, AlarmReaction reaction) {
     alarm->Status = ALARM_STATUS_GONE;
   } else if (alarm->Status == ALARM_STATUS_ACKNOWLEDGED && !execute) {
     alarm->Status = ALARM_STATUS_INACTIVE;
-    alarm->Ts = esp_timer_get_time();
+    alarm->Ts = esp_timer_get_time()/1000; // Convert to milliseconds
   } else if (alarm->Status == ALARM_STATUS_GONE && execute) {
     alarm->Status = ALARM_STATUS_ACTIVE;
-    alarm->Ts = esp_timer_get_time();
+    alarm->Ts = esp_timer_get_time()/1000; // Convert to milliseconds
   } else if (alarm->Status == ALARM_STATUS_GONE && alarmsAck) {
     alarm->Status = ALARM_STATUS_INACTIVE;
-    alarm->Ts = esp_timer_get_time();
+    alarm->Ts = esp_timer_get_time()/1000; // Convert to milliseconds
   }
 
   if (alarm->Status == ALARM_STATUS_INACTIVE) {
