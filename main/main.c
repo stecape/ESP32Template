@@ -15,12 +15,15 @@
 #include "services/mqtt/mqtt.h"
 #include "services/Wifi/Wifi.h"
 #include "services/battery/battery.h"
+#include "sclib/alarms/alarms.h"
 
 //Librerie per test
 #include <math.h>
 //Librerie per test
 
 #define CONFIG_INTERRUPT_CYCLE_TIME_S 5
+
+int test = 0;
 
 void setup() {
   // Setup calls
@@ -43,6 +46,12 @@ void loop() {
   sclib_SetAct(&PLC.Pressure, 0, 0.0, 0);
   sclib_writeSetAct(&PLC.Pressure, 7.0);
   mqtt_updHMI(false);
+  alarm(&PLC.LightOn, PLC.Light.Status==2, ALARM_REACTION_WARNING);
+  if (test != PLC.LightOn.Status) {
+    test = PLC.LightOn.Status;
+    ESP_LOGI("TEST", "Alarm status: %d", PLC.LightOn.Status);
+  }
+  check_alarms();
 }
 
 

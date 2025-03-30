@@ -6,6 +6,7 @@
 #include "HMI.h"
 #include <math.h>
 #include "esp_timer.h"
+#include "../../sclib/alarms/alarms.h"
 
 #ifndef CONFIG_MQTT_LWT_RETAIN
 #define CONFIG_MQTT_LWT_RETAIN 0
@@ -74,7 +75,15 @@ static void mqtt_system_call(uint8_t call_id) {
         case 3:
             ESP_LOGI(TAG, "Pinging...");
             mqtt_ping();
-            break;
+            break;            
+        case 4:
+            ESP_LOGI(TAG, "Ack received...");
+            alarms_ack();
+        break;
+        case 5:
+            ESP_LOGI(TAG, "Set date and time...");
+            // Set the date and time here
+        break;
         default:
             ESP_LOGE(TAG, "Unknown system call");
             break;
@@ -291,7 +300,16 @@ void mqtt_updHMI(bool force) {
                 // Gestione delle stringhe se necessario
                 break;
             case TIMESTAMP:
-                // Gestione dei timestamp se necessario
+                if (*(time_t *)HMI_pointer[i] != *(time_t *)PLC_pointer[i] || force) {
+                    cJSON *root = cJSON_CreateObject();
+                    cJSON_AddNumberToObject(root, "id", id[i]);
+                    *(time_t *)HMI_pointer[i] = *(time_t *)PLC_pointer[i];
+                    cJSON_AddNumberToObject(root, "value", (int64_t)*(time_t *)HMI_pointer[i]);
+                    char *payload = cJSON_Print(root);
+                    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+                    cJSON_Delete(root);
+                    free(payload);
+                }
                 break;
             default:
                 ESP_LOGE(TAG, "Unknown type");

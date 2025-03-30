@@ -28,6 +28,11 @@ _HMI HMI = {
 		.Limit.Min = 0,
 		.Limit.Max = 10,
 	},
+	.LightOn = {
+		.Status = 0,
+		.Reaction = 0,
+		.Ts = 0,
+	},
 };
 
 _HMI PLC = {
@@ -58,13 +63,20 @@ _HMI PLC = {
 		.Limit.Min = 0,
 		.Limit.Max = 10,
 	},
+	.LightOn = {
+		.Status = 0,
+		.Reaction = 0,
+		.Ts = 0,
+		.Q = false,
+	},
 };
 
-int id[19] = {
+
+int id[23] = {
 	11,
+	13,
 	14,
 	15,
-	13,
 	16,
 	18,
 	19,
@@ -79,36 +91,44 @@ int id[19] = {
 	35,
 	36,
 	37,
-	38
+	38,
+	44,
+	45,
+	46,
+	47
 };
 
-int type[19] = {
+int type[23] = {
+	REAL,
+	INT,
 	REAL,
 	REAL,
 	REAL,
 	INT,
-	REAL,
-	INT,
-	INT,
-	REAL,
-	REAL,
 	INT,
 	REAL,
 	REAL,
 	INT,
 	REAL,
 	REAL,
+	INT,
 	REAL,
 	REAL,
 	REAL,
-	REAL
+	REAL,
+	REAL,
+	REAL,
+	INT,
+	INT,
+	TIMESTAMP,
+	BOOL
 };
 
-void *HMI_pointer[19] = {
+void *HMI_pointer[23] = {
 	(void*)&HMI.BatteryLevel.Act.HMIValue,
+	(void*)&HMI.BatteryLevel.Decimals,
 	(void*)&HMI.BatteryLevel.Limit.Min,
 	(void*)&HMI.BatteryLevel.Limit.Max,
-	(void*)&HMI.BatteryLevel.Decimals,
 	(void*)&HMI.BatteryLevel.Act.Value,
 	(void*)&HMI.Light.Command,
 	(void*)&HMI.Light.Status,
@@ -123,14 +143,18 @@ void *HMI_pointer[19] = {
 	(void*)&HMI.Pressure.Act.HMIValue,
 	(void*)&HMI.Pressure.Limit.Min,
 	(void*)&HMI.Pressure.Limit.Max,
-	(void*)&HMI.Pressure.Act.Value
+	(void*)&HMI.Pressure.Act.Value,
+	(void*)&HMI.LightOn.Status,
+	(void*)&HMI.LightOn.Reaction,
+	(void*)&HMI.LightOn.Ts,
+	(void*)&HMI.LightOn.Q
 };
 
-void *PLC_pointer[19] = {
+void *PLC_pointer[23] = {
 	(void*)&PLC.BatteryLevel.Act.HMIValue,
+	(void*)&PLC.BatteryLevel.Decimals,
 	(void*)&PLC.BatteryLevel.Limit.Min,
 	(void*)&PLC.BatteryLevel.Limit.Max,
-	(void*)&PLC.BatteryLevel.Decimals,
 	(void*)&PLC.BatteryLevel.Act.Value,
 	(void*)&PLC.Light.Command,
 	(void*)&PLC.Light.Status,
@@ -145,5 +169,9 @@ void *PLC_pointer[19] = {
 	(void*)&PLC.Pressure.Act.HMIValue,
 	(void*)&PLC.Pressure.Limit.Min,
 	(void*)&PLC.Pressure.Limit.Max,
-	(void*)&PLC.Pressure.Act.Value
+	(void*)&PLC.Pressure.Act.Value,
+	(void*)&PLC.LightOn.Status,
+	(void*)&PLC.LightOn.Reaction,
+	(void*)&PLC.LightOn.Ts,
+	(void*)&PLC.LightOn.Q
 };

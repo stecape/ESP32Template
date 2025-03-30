@@ -2,6 +2,7 @@
 #define HMI_h
 
 #include "time.h"
+#include <stdbool.h>
 
 #define REAL 1
 #define INT 3
@@ -56,6 +57,7 @@ typedef struct {
 	int Status;
 	int Reaction;
 	time_t Ts;
+	bool Q;
 } Alarm;
 
 typedef struct {
@@ -63,13 +65,14 @@ typedef struct {
 	LogicSelection Light;
 	Set Temperature;
 	SetAct Pressure;
+	Alarm LightOn;
 } _HMI;
 extern _HMI HMI;
 extern _HMI PLC;
 
-extern int id[19];
-extern int type[19];
-extern void *HMI_pointer[19];
-extern void *PLC_pointer[19];
+extern int id[23];
+extern int type[23];
+extern void *HMI_pointer[23];
+extern void *PLC_pointer[23];
 
 #endif
