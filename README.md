@@ -66,3 +66,15 @@ Da quel momento ha iniziato a compilare perfettamente.
 
 Da li in poi bisogna inoltrare la porta USB a WSL per poter flashare:
 https://docs.espressif.com/projects/vscode-esp-idf-extension/en/latest/additionalfeatures/docker-container.html
+
+praticamente se sei già a posto col wsl basta trovare i dispositivi usb. Nella powershell esegui:
+usbipd list
+e poi attaccare quello che hai tu (sostituisci 2-6). Sempre nella powershell:
+usbipd attach --wsl --busid 2-6 --auto-attach
+a quel punto devi configurare il dispositivo giusto dentro all'ide, nel mio caso deve chiamarsi /dev/ttyACM0. Esegui nel terminal di visual studio code in esecuzione in container:
+dmesg | tail
+dovrebbe apparire qualcosa del genere. Quello è il nome del tuo dispositivo usb:
+[331222.483371] cdc_acm 1-1:1.0: ttyACM0: USB ACM device
+quindi sempre in VS Code apri la cartella .vscode, file settings.json e modifica idf.port con il giusto nome:
+  "idf.port": "/dev/ttyACM0",
+A quel punto dovresti esserci. Se non si apre riavvia VS Code

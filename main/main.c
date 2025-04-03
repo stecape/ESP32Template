@@ -44,7 +44,7 @@ void loop() {
   sclib_logic(&PLC.Light);
   sclib_Set(&PLC.Temperature, 0, 0.0, 0);
   sclib_SetAct(&PLC.Pressure, 0, 0.0, 0);
-  sclib_writeSetAct(&PLC.Pressure, 7.0);
+  sclib_writeSetAct(&PLC.Pressure, 7.2);
   mqtt_updHMI(false);
   alarm(&PLC.LightOn, PLC.Light.Status==2, ALARM_REACTION_WARNING);
   if (test != PLC.LightOn.Status) {

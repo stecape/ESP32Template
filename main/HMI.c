@@ -1,101 +1,101 @@
 #include "HMI.h"
-
+  
 _HMI HMI = {
 	.BatteryLevel = {
-		.Decimals = 0,
 		.Act.HMIValue = 0,
-		.Act.Value = 0,
+		.Decimals = 0,
 		.Limit.Min = 0,
 		.Limit.Max = 100,
+		.Act.Value = 0,
 	},
 	.Light = {
 		.Command = 0,
 		.Status = 0,
 	},
 	.Temperature = {
-		.Decimals = 0,
 		.Set.InputValue = 0,
-		.Set.Value = 0,
-		.Limit.Min = 20,
+		.Decimals = 0,
 		.Limit.Max = 70,
+		.Limit.Min = 20,
+		.Set.Value = 0,
 	},
 	.Pressure = {
 		.Decimals = 1,
+		.Limit.Min = 0,
 		.Set.InputValue = 0,
 		.Set.Value = 0,
 		.Act.HMIValue = 0,
 		.Act.Value = 0,
-		.Limit.Min = 0,
 		.Limit.Max = 10,
 	},
 	.LightOn = {
-		.Status = 0,
 		.Reaction = 0,
+		.Status = 0,
+		.Q = false,
 		.Ts = 0,
 	},
 };
 
 _HMI PLC = {
 	.BatteryLevel = {
-		.Decimals = 0,
 		.Act.HMIValue = 0,
-		.Act.Value = 0,
+		.Decimals = 0,
 		.Limit.Min = 0,
 		.Limit.Max = 100,
+		.Act.Value = 0,
 	},
 	.Light = {
 		.Command = 0,
 		.Status = 0,
 	},
 	.Temperature = {
-		.Decimals = 0,
 		.Set.InputValue = 0,
-		.Set.Value = 0,
-		.Limit.Min = 20,
+		.Decimals = 0,
 		.Limit.Max = 70,
+		.Limit.Min = 20,
+		.Set.Value = 0,
 	},
 	.Pressure = {
 		.Decimals = 1,
+		.Limit.Min = 0,
 		.Set.InputValue = 0,
 		.Set.Value = 0,
 		.Act.HMIValue = 0,
 		.Act.Value = 0,
-		.Limit.Min = 0,
 		.Limit.Max = 10,
 	},
 	.LightOn = {
-		.Status = 0,
 		.Reaction = 0,
-		.Ts = 0,
+		.Status = 0,
 		.Q = false,
+		.Ts = 0,
 	},
 };
 
-
 int id[23] = {
+	3,
+	5,
+	6,
+	7,
+	8,
+	10,
 	11,
-	13,
 	14,
-	15,
 	16,
+	17,
 	18,
 	19,
-	23,
 	24,
 	25,
 	26,
 	27,
-	32,
+	28,
+	29,
+	30,
 	33,
-	34,
+	32,
 	35,
-	36,
-	37,
-	38,
-	44,
-	45,
-	46,
-	47
+	34
 };
 
 int type[23] = {
@@ -107,21 +107,21 @@ int type[23] = {
 	INT,
 	INT,
 	REAL,
-	REAL,
-	INT,
-	REAL,
-	REAL,
 	INT,
 	REAL,
 	REAL,
 	REAL,
+	INT,
+	REAL,
+	REAL,
+	REAL,
 	REAL,
 	REAL,
 	REAL,
 	INT,
 	INT,
-	TIMESTAMP,
-	BOOL
+	BOOL,
+	TIMESTAMP
 };
 
 void *HMI_pointer[23] = {
@@ -133,21 +133,21 @@ void *HMI_pointer[23] = {
 	(void*)&HMI.Light.Command,
 	(void*)&HMI.Light.Status,
 	(void*)&HMI.Temperature.Set.InputValue,
-	(void*)&HMI.Temperature.Limit.Min,
 	(void*)&HMI.Temperature.Decimals,
-	(void*)&HMI.Temperature.Set.Value,
 	(void*)&HMI.Temperature.Limit.Max,
+	(void*)&HMI.Temperature.Limit.Min,
+	(void*)&HMI.Temperature.Set.Value,
 	(void*)&HMI.Pressure.Decimals,
+	(void*)&HMI.Pressure.Limit.Min,
 	(void*)&HMI.Pressure.Set.InputValue,
 	(void*)&HMI.Pressure.Set.Value,
 	(void*)&HMI.Pressure.Act.HMIValue,
-	(void*)&HMI.Pressure.Limit.Min,
-	(void*)&HMI.Pressure.Limit.Max,
 	(void*)&HMI.Pressure.Act.Value,
-	(void*)&HMI.LightOn.Status,
+	(void*)&HMI.Pressure.Limit.Max,
 	(void*)&HMI.LightOn.Reaction,
-	(void*)&HMI.LightOn.Ts,
-	(void*)&HMI.LightOn.Q
+	(void*)&HMI.LightOn.Status,
+	(void*)&HMI.LightOn.Q,
+	(void*)&HMI.LightOn.Ts
 };
 
 void *PLC_pointer[23] = {
@@ -159,19 +159,19 @@ void *PLC_pointer[23] = {
 	(void*)&PLC.Light.Command,
 	(void*)&PLC.Light.Status,
 	(void*)&PLC.Temperature.Set.InputValue,
-	(void*)&PLC.Temperature.Limit.Min,
 	(void*)&PLC.Temperature.Decimals,
-	(void*)&PLC.Temperature.Set.Value,
 	(void*)&PLC.Temperature.Limit.Max,
+	(void*)&PLC.Temperature.Limit.Min,
+	(void*)&PLC.Temperature.Set.Value,
 	(void*)&PLC.Pressure.Decimals,
+	(void*)&PLC.Pressure.Limit.Min,
 	(void*)&PLC.Pressure.Set.InputValue,
 	(void*)&PLC.Pressure.Set.Value,
 	(void*)&PLC.Pressure.Act.HMIValue,
-	(void*)&PLC.Pressure.Limit.Min,
-	(void*)&PLC.Pressure.Limit.Max,
 	(void*)&PLC.Pressure.Act.Value,
-	(void*)&PLC.LightOn.Status,
+	(void*)&PLC.Pressure.Limit.Max,
 	(void*)&PLC.LightOn.Reaction,
-	(void*)&PLC.LightOn.Ts,
-	(void*)&PLC.LightOn.Q
+	(void*)&PLC.LightOn.Status,
+	(void*)&PLC.LightOn.Q,
+	(void*)&PLC.LightOn.Ts
 };

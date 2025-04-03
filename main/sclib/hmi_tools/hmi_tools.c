@@ -633,7 +633,7 @@ void sclib_Set(Set *set, int force, float forceValue, int NotAllowed) {
     set->Set.Value = set->Limit.Min;
     set->Set.InputValue = set->Limit.Min;
   } 
-
+  
   //Forced value
   if (force) {
     if (forceValue != set->Set.Value) {
