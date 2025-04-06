@@ -1,6 +1,10 @@
+#include "hmi_tools.h"
 #include "../../HMI.h"
 #include "../../services/mqtt/mqtt.h"
 #include <math.h>
+#include "../../services/NVS/nvs_manager.h"
+#include <nvs_flash.h>
+#include <nvs.h>
 
 #define _SET 1
 #define _RESET 2
@@ -11,10 +15,100 @@
 
 static size_t HMI_array_length = ARRAY_SIZE(id);
 
+//Initialization of the retentive tags in the nvs
+void sclib_init() {
+    // Iterate through the PLC_pointer array
+    for (size_t i = 0; i < HMI_array_length; i++) {
+        int key = id[i]; // Use the id corresponding to the index
+        esp_err_t read;
+        esp_err_t write;
+
+        switch (type[i]) {
+            case REAL: {
+                float valueStored = 0.0f; // Initialize the variable to store the value
+                read = nvs_manager_get_float(key, &valueStored);
+                if (read == ESP_ERR_NVS_NOT_FOUND) {
+                    ESP_LOGW("DEBUG", "Float key '%d' not found, initializing with default value", key);
+                    // Write the initial value to NVS
+                    write = nvs_manager_set_float(key, *(float *)PLC_pointer[i]);
+                    if (write != ESP_OK) {
+                        ESP_LOGE("DEBUG", "Error writing default value to NVS: %s", esp_err_to_name(write));
+                        continue;
+                    }
+                } else if (read != ESP_OK) {
+                    ESP_LOGE("DEBUG", "Error reading from NVS: %s", esp_err_to_name(read));
+                    continue;
+                } else {
+                    // If the value is successfully read, assign it to the current pointer
+                    *(float *)PLC_pointer[i] = valueStored;
+                    ESP_LOGI("DEBUG", "Read tag number %d value from nvs: %f", id[i], valueStored);
+                }
+                break;
+            }
+            case INT: {
+                int valueStored = 0; // Initialize the variable to store the value
+                read = nvs_manager_get_int(key, &valueStored);
+                if (read == ESP_ERR_NVS_NOT_FOUND) {
+                    ESP_LOGW("DEBUG", "Int key '%d' not found, initializing with default value", key);
+                    // Write the initial value to NVS
+                    write = nvs_manager_set_int(key, *(int *)PLC_pointer[i]);
+                    if (write != ESP_OK) {
+                        ESP_LOGE("DEBUG", "Error writing default value to NVS: %s", esp_err_to_name(write));
+                        continue;
+                    }
+                } else if (read != ESP_OK) {
+                    ESP_LOGE("DEBUG", "Error reading from NVS: %s", esp_err_to_name(read));
+                    continue;
+                } else {
+                    // If the value is successfully read, assign it to the current pointer
+                    *(int *)PLC_pointer[i] = valueStored;
+                    ESP_LOGI("DEBUG", "Read tag number %d value from nvs: %d", id[i], valueStored);
+                }
+                break;
+            }
+            case BOOL: {
+                bool valueStored = false; // Initialize the variable to store the value
+                read = nvs_manager_get_bool(key, &valueStored);
+                if (read == ESP_ERR_NVS_NOT_FOUND) {
+                    ESP_LOGW("DEBUG", "Bool key '%d' not found, initializing with default value", key);
+                    // Write the initial value to NVS
+                    write = nvs_manager_set_bool(key, *(bool *)PLC_pointer[i]);
+                    if (write != ESP_OK) {
+                        ESP_LOGE("DEBUG", "Error writing default value to NVS: %s", esp_err_to_name(write));
+                        continue;
+                    }
+                } else if (read != ESP_OK) {
+                    ESP_LOGE("DEBUG", "Error reading from NVS: %s", esp_err_to_name(read));
+                    continue;
+                } else {
+                    // If the value is successfully read, assign it to the current pointer
+                    *(bool *)PLC_pointer[i] = valueStored;
+                    ESP_LOGI("DEBUG", "Read tag number %d value from nvs: %d", id[i], valueStored);
+                }
+                break;
+            }
+            default:
+                ESP_LOGW("DEBUG", "Unhandled type '%d' for key '%d'", type[i], key);
+                break;
+        }
+    }
+}
+
 void sclib_logic (LogicSelection *logic_selection) {
-  //initialization
-  if (logic_selection->Status == 0){
+
+  if (logic_selection->Status == 0) {
     int status = 1;
+    for (size_t i = 0; i < HMI_array_length; i++) {
+      if (PLC_pointer[i] == (void *)&logic_selection->Status) {
+        int key = id[i]; // Use the id corresponding to the index
+        esp_err_t write = nvs_manager_set_int(key, status);
+        if (write != ESP_OK) {
+          //ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+          return;
+        }
+        break;
+      }
+    }
     logic_selection->Status = status;
     ESP_LOGI("DEBUG", "Status initialization: %d", logic_selection->Status);
   }
@@ -22,6 +116,17 @@ void sclib_logic (LogicSelection *logic_selection) {
   for (int i = 0; i < 8; i++) {
     if (1 & (logic_selection->Command >> i)) {
       ESP_LOGI("DEBUG", "Received Value: %d", logic_selection->Command);
+      for (size_t i = 0; i < HMI_array_length; i++) {
+        if (PLC_pointer[i] == (void *)&logic_selection->Status) {
+          int key = id[i]; // Use the id corresponding to the index
+          esp_err_t write = nvs_manager_set_int(key, logic_selection->Command);
+          if (write != ESP_OK) {
+            //ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+            return;
+          }
+          break;
+        }
+      }
       logic_selection->Status = logic_selection->Command;
       int command = 0;
       logic_selection->Command = command;
@@ -617,19 +722,52 @@ void sclib_logic_generic(LogicSelection *logic_selection, uint8_t *force, uint8_
 
 // Funzione generica per gestire un Set
 void sclib_Set(Set *set, int force, float forceValue, int NotAllowed) {
-  float _forceValue = forceValue;
+
+  // First initialization
+  if (!set->Init) {
+    set->Set.InputValue = set->Set.Value;
+    set->Init = 1; // Mark as initialized
+    ESP_LOGI("DEBUG", "Set initialization: %f", set->Set.Value);
+  }
 
   //Min and Max check
   if (set->Limit.Min >= set->Limit.Max) {
     return;
   }
 
-  //Initialization
   if (set->Set.Value > set->Limit.Max){
+    int key = -1;
+    for (size_t i = 0; i < HMI_array_length; i++) {
+      if (PLC_pointer[i] == (void *)&set->Set.Value) {
+      key = id[i]; // Use the id corresponding to the index
+      break;
+      }
+    }
+    if (key != -1) {
+      esp_err_t write = nvs_manager_set_float(key, set->Limit.Max);
+      if (write != ESP_OK) {
+        ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+        return;
+      }
+    }
     set->Set.Value = set->Limit.Max;
     set->Set.InputValue = set->Limit.Max;
   }
   if (set->Set.Value < set->Limit.Min) {
+    int key = -1;
+    for (size_t i = 0; i < HMI_array_length; i++) {
+      if (PLC_pointer[i] == (void *)&set->Set.Value) {
+        key = id[i]; // Use the id corresponding to the index
+        break;
+      }
+    }
+    if (key != -1) {
+      esp_err_t write = nvs_manager_set_float(key, set->Limit.Min);
+      if (write != ESP_OK) {
+        ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+        return;
+      }
+    }
     set->Set.Value = set->Limit.Min;
     set->Set.InputValue = set->Limit.Min;
   } 
@@ -638,8 +776,22 @@ void sclib_Set(Set *set, int force, float forceValue, int NotAllowed) {
   if (force) {
     if (forceValue != set->Set.Value) {
       if (forceValue <= set->Limit.Max && forceValue >= set->Limit.Min) {
-        set->Set.Value = _forceValue;
-        set->Set.InputValue = _forceValue;
+        int key = -1;
+        for (size_t i = 0; i < HMI_array_length; i++) {
+          if (PLC_pointer[i] == (void *)&set->Set.Value) {
+          key = id[i]; // Use the id corresponding to the index
+          break;
+          }
+        }
+        if (key != -1) {
+          esp_err_t write = nvs_manager_set_float(key, forceValue);
+          if (write != ESP_OK) {
+            ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+            return;
+          }
+        }
+        set->Set.Value = forceValue;
+        set->Set.InputValue = forceValue;
       }
     }
   } else {
@@ -651,6 +803,20 @@ void sclib_Set(Set *set, int force, float forceValue, int NotAllowed) {
         // If allowed, check if the value is in the range
         if (set->Set.InputValue <= set->Limit.Max && set->Set.InputValue >= set->Limit.Min) {
           // If is in range, update the value
+          int key = -1;
+          for (size_t i = 0; i < HMI_array_length; i++) {
+            if (PLC_pointer[i] == (void *)&set->Set.Value) {
+            key = id[i]; // Use the id corresponding to the index
+            break;
+            }
+          }
+          if (key != -1) {
+            esp_err_t write = nvs_manager_set_float(key, set->Set.InputValue);
+            if (write != ESP_OK) {
+              ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+              return;
+            }
+          }
           set->Set.Value = set->Set.InputValue;
         } else {
           // If is not in range, update the input value with the current value
@@ -664,29 +830,76 @@ void sclib_Set(Set *set, int force, float forceValue, int NotAllowed) {
 
 // Funzione generica per gestire un SetAct
 void sclib_SetAct(SetAct *setact, int force, float forceValue, int NotAllowed) {
-  float _forceValue = forceValue;
+
+  // First initialization
+  if (!setact->Init) {
+    setact->Set.InputValue = setact->Set.Value;
+    setact->Init = 1; // Mark as initialized
+    ESP_LOGI("DEBUG", "Set initialization: %f", setact->Set.Value);
+  }
 
   //Min and Max check
   if (setact->Limit.Min >= setact->Limit.Max) {
     return;
   }
 
-  //Initialization
   if (setact->Set.Value > setact->Limit.Max){
+    int key = -1;
+    for (size_t i = 0; i < HMI_array_length; i++) {
+      if (PLC_pointer[i] == (void *)&setact->Set.Value) {
+      key = id[i]; // Use the id corresponding to the index
+      break;
+      }
+    }
+    if (key != -1) {
+      esp_err_t write = nvs_manager_set_float(key, setact->Limit.Max);
+      if (write != ESP_OK) {
+        ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+        return;
+      }
+    }
     setact->Set.Value = setact->Limit.Max;
     setact->Set.InputValue = setact->Limit.Max;
   }
   if (setact->Set.Value < setact->Limit.Min) {
+    int key = -1;
+    for (size_t i = 0; i < HMI_array_length; i++) {
+      if (PLC_pointer[i] == (void *)&setact->Set.Value) {
+        key = id[i]; // Use the id corresponding to the index
+        break;
+      }
+    }
+    if (key != -1) {
+      esp_err_t write = nvs_manager_set_float(key, setact->Limit.Min);
+      if (write != ESP_OK) {
+        ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+        return;
+      }
+    }
     setact->Set.Value = setact->Limit.Min;
     setact->Set.InputValue = setact->Limit.Min;
   } 
-
+  
   //Forced value
   if (force) {
     if (forceValue != setact->Set.Value) {
       if (forceValue <= setact->Limit.Max && forceValue >= setact->Limit.Min) {
-        setact->Set.Value = _forceValue;
-        setact->Set.InputValue = _forceValue;
+        int key = -1;
+        for (size_t i = 0; i < HMI_array_length; i++) {
+          if (PLC_pointer[i] == (void *)&setact->Set.Value) {
+          key = id[i]; // Use the id corresponding to the index
+          break;
+          }
+        }
+        if (key != -1) {
+          esp_err_t write = nvs_manager_set_float(key, forceValue);
+          if (write != ESP_OK) {
+            ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+            return;
+          }
+        }
+        setact->Set.Value = forceValue;
+        setact->Set.InputValue = forceValue;
       }
     }
   } else {
@@ -698,6 +911,20 @@ void sclib_SetAct(SetAct *setact, int force, float forceValue, int NotAllowed) {
         // If allowed, check if the value is in the range
         if (setact->Set.InputValue <= setact->Limit.Max && setact->Set.InputValue >= setact->Limit.Min) {
           // If is in range, update the value
+          int key = -1;
+          for (size_t i = 0; i < HMI_array_length; i++) {
+            if (PLC_pointer[i] == (void *)&setact->Set.Value) {
+            key = id[i]; // Use the id corresponding to the index
+            break;
+            }
+          }
+          if (key != -1) {
+            esp_err_t write = nvs_manager_set_float(key, setact->Set.InputValue);
+            if (write != ESP_OK) {
+              ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+              return;
+            }
+          }
           setact->Set.Value = setact->Set.InputValue;
         } else {
           // If is not in range, update the input value with the current value
@@ -708,7 +935,7 @@ void sclib_SetAct(SetAct *setact, int force, float forceValue, int NotAllowed) {
   }
 }
 
-// Funzione generica per scrivere un valore in Act
+// Funzione generica per scrivere un valore nell'act in Act
 void sclib_writeAct(Act *act, float value){  
   int scale = (int)pow(10, act->Decimals);
   act->Act.HMIValue = (float)((int)(value * scale + 0.5)) / scale; // Usa floor per evitare imprecisioni
@@ -724,7 +951,7 @@ void sclib_writeAct(Act *act, float value){
   }
 };
 
-// Funzione generica per scrivere un valore in SetAct
+// Funzione generica per scrivere un valore nell'act in SetAct
 void sclib_writeSetAct(SetAct *setact, float value){  
   int scale = (int)pow(10, setact->Decimals);
   setact->Act.HMIValue = (float)((int)(value * scale + 0.5)) / scale; // Usa floor per evitare imprecisioni

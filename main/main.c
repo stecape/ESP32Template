@@ -14,6 +14,7 @@
 #include "peripherials/led/led.h"
 #include "services/mqtt/mqtt.h"
 #include "services/Wifi/Wifi.h"
+#include "services/NVS/nvs_manager.h"
 #include "services/battery/battery.h"
 #include "sclib/alarms/alarms.h"
 
@@ -30,8 +31,10 @@ void setup() {
   ESP_LOGI("HELLO", "Ciao Cacà, Ciao Tommy! =)");
   // Create default event loop
   ESP_ERROR_CHECK(esp_event_loop_create_default());
+  ESP_ERROR_CHECK(nvs_manager_init());
   Wifi_setup();
   mqtt_setup();
+  sclib_init();
   led_setup();
   battery_setup();
 }

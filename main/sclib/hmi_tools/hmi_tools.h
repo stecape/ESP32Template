@@ -2,7 +2,7 @@
 #define hmi_tools_h
 
 #include "../../HMI.h"
-
+void sclib_init();
 void sclib_logic (LogicSelection *logic_selection);
 void sclib_logic_SR (LogicSelection *logic_selection, int resetNotAllowed, int resetForced, int setNotAllowed, int setForced);
 void sclib_logic_2 (LogicSelection *logic_selection, int _1NotAllowed, int _1Forced, int _2NotAllowed, int _2Forced);

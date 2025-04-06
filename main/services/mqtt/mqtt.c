@@ -178,10 +178,24 @@ static void mqtt_receive(esp_mqtt_event_handle_t event){
                     *(int *)PLC_pointer[i] = (value != 0);
                     break;
                 case STRING:
-                    // Gestione delle stringhe se necessario
+                    value_json = cJSON_GetObjectItem(root, "value");
+                    if (cJSON_IsString(value_json)) {
+                        strncpy((char *)HMI_pointer[i], value_json->valuestring, 256);
+                        strncpy((char *)PLC_pointer[i], value_json->valuestring, 256);
+                        //ESP_LOGI(TAG, "Updated STRING value for ID %d: %s", id[i], value_json->valuestring);
+                    } else {
+                        ESP_LOGE(TAG, "Invalid STRING value for ID %d", id[i]);
+                    }
                     break;
                 case TIMESTAMP:
-                    // Gestione dei timestamp se necessario
+                    value_json = cJSON_GetObjectItem(root, "value");
+                    if (cJSON_IsNumber(value_json)) {
+                        *(time_t *)HMI_pointer[i] = (time_t)value_json->valuedouble;
+                        *(time_t *)PLC_pointer[i] = (time_t)value_json->valuedouble;
+                        //ESP_LOGI(TAG, "Updated TIMESTAMP value for ID %d: %lld", id[i], (int64_t)value_json->valuedouble);
+                    } else {
+                        ESP_LOGE(TAG, "Invalid TIMESTAMP value for ID %d", id[i]);
+                    }
                     break;
                 default:
                     ESP_LOGE(TAG, "Unknown type\n");
@@ -270,6 +284,7 @@ void mqtt_updHMI(bool force) {
     for (size_t i = 0; i < array_length; i++) {
         switch (type[i]) {
             case REAL: {
+                // Controlla se il valore è cambiato o se è forzato
                 if (*(float *)HMI_pointer[i] != *(float *)PLC_pointer[i] || force) {
                     cJSON *root = cJSON_CreateObject();
                     cJSON_AddNumberToObject(root, "id", id[i]);
@@ -309,7 +324,16 @@ void mqtt_updHMI(bool force) {
                 break;
             }
             case STRING:
-                // Gestione delle stringhe se necessario
+                if (strcmp((char *)HMI_pointer[i], (char *)PLC_pointer[i]) != 0 || force) {
+                    cJSON *root = cJSON_CreateObject();
+                    cJSON_AddNumberToObject(root, "id", id[i]);
+                    strcpy((char *)HMI_pointer[i], (char *)PLC_pointer[i]); // Aggiorna la stringa
+                    cJSON_AddStringToObject(root, "value", (char *)PLC_pointer[i]); // Aggiungi la stringa al JSON
+                    char *payload = cJSON_Print(root);
+                    esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
+                    cJSON_Delete(root);
+                    free(payload);
+                }
                 break;
             case TIMESTAMP:
                 if (*(time_t *)HMI_pointer[i] != *(time_t *)PLC_pointer[i] || force) {

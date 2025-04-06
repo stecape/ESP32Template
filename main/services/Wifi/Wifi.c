@@ -311,13 +311,13 @@ void wifi_provisioning(void)
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         /* NVS partition was truncated
-         * and needs to be erased */
+        * and needs to be erased */
         ESP_ERROR_CHECK(nvs_flash_erase());
 
         /* Retry nvs_flash_init */
         ESP_ERROR_CHECK(nvs_flash_init());
     }
-
+    
     /* Initialize TCP/IP */
     ESP_ERROR_CHECK(esp_netif_init());
     // Verifica se l'evento loop è già stato creato
