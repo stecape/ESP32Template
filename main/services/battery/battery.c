@@ -4,11 +4,32 @@
 #include "../../sclib/hmi_tools/hmi_tools.h"
 #include "../mqtt/mqtt.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
 
 #define VBAT_PIN ADC_CHANNEL_7
+#define POWER_DETECT_PIN GPIO_NUM_35 // Example GPIO pin for power detection
 
 static const char *TAG = "battery";
 static adc_oneshot_unit_handle_t adc1_handle;
+
+// Function to detect if the ESP32 is connected to external power
+bool is_connected_to_power(void) {
+    gpio_set_direction(POWER_DETECT_PIN, GPIO_MODE_INPUT);
+    return gpio_get_level(POWER_DETECT_PIN) == 1; // HIGH means connected to power
+}
+
+// Function to get the configured low-power mode
+low_power_mode_t get_low_power_mode(void) {
+    #if CONFIG_LOW_POWER_MODE_DEEP_SLEEP
+        return LOW_POWER_DEEP_SLEEP;
+    #elif CONFIG_LOW_POWER_MODE_LIGHT_SLEEP
+        return LOW_POWER_LIGHT_SLEEP;
+    #elif CONFIG_LOW_POWER_MODE_HIBERNATE
+        return LOW_POWER_HIBERNATE;
+    #else
+        return LOW_POWER_DEEP_SLEEP; // Default to Deep Sleep
+    #endif
+}
 
 float readBatteryVoltage() {
   int raw;

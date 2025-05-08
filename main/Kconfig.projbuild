@@ -382,4 +382,28 @@ menu "Pot"
             help
                 Enable re-prova.
     endmenu
+
+    menu "Pot - Low Power Configuration"
+
+        choice LOW_POWER_MODE
+            prompt "Select Low Power Mode"
+            default LOW_POWER_MODE_DEEP_SLEEP
+
+            config LOW_POWER_MODE_DEEP_SLEEP
+                bool "Deep Sleep"
+                help
+                    Use Deep Sleep mode for low power consumption.
+
+            config LOW_POWER_MODE_LIGHT_SLEEP
+                bool "Light Sleep"
+                help
+                    Use Light Sleep mode for low power consumption.
+
+            config LOW_POWER_MODE_HIBERNATE
+                bool "Hibernate"
+                help
+                    Use Hibernate mode for the lowest power consumption.
+        endchoice
+
+    endmenu
 endmenu
