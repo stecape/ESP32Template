@@ -15,18 +15,60 @@
 
 static size_t HMI_array_length = ARRAY_SIZE(id);
 
-//Initialization of the retentive tags in the nvs
-void sclib_init() {
+void PLC_to_NVS() {
+  esp_err_t write;
     // Iterate through the PLC_pointer array
     for (size_t i = 0; i < HMI_array_length; i++) {
         int key = id[i]; // Use the id corresponding to the index
-        esp_err_t read;
-        esp_err_t write;
+        switch (type[i]) {
+            case REAL: {
+                float valueStored = *(float *)PLC_pointer[i];
+                ESP_LOGI("DEBUG", "Writing tag number %d value to nvs: %f", id[i], valueStored);
+                write = nvs_manager_set_float(key, valueStored);
+                if (write != ESP_OK) {
+                    ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+                    continue;
+                }
+                break;
+            }
+            case INT: {
+                int valueStored = *(int *)PLC_pointer[i];
+                ESP_LOGI("DEBUG", "Writing tag number %d value to nvs: %d", id[i], valueStored);
+                write = nvs_manager_set_int(key, valueStored);
+                if (write != ESP_OK) {
+                    ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+                    continue;
+                }
+                break;
+            }
+            case BOOL: {
+                bool valueStored = *(bool *)PLC_pointer[i];
+                ESP_LOGI("DEBUG", "Writing tag number %d value to nvs: %d", id[i], valueStored);
+                write = nvs_manager_set_bool(key, valueStored);
+                if (write != ESP_OK) {
+                    ESP_LOGE("DEBUG", "Error writing to NVS: %s", esp_err_to_name(write));
+                    continue;
+                }
+                break;
+            }
+            default:
+                ESP_LOGW("DEBUG", "Unhandled type '%d' for key '%d'", type[i], key);
+                break;
+        }
+    }
+}
 
+void NVS_to_PLC () {
+  esp_err_t read;
+  esp_err_t write;
+      // Iterate through the PLC_pointer array
+      for (size_t i = 0; i < HMI_array_length; i++) {
+        int key = id[i]; // Use the id corresponding to the index
         switch (type[i]) {
             case REAL: {
                 float valueStored = 0.0f; // Initialize the variable to store the value
                 read = nvs_manager_get_float(key, &valueStored);
+                ESP_LOGI("DEBUG", "Read tag number %d value from nvs: %f", id[i], valueStored);
                 if (read == ESP_ERR_NVS_NOT_FOUND) {
                     ESP_LOGW("DEBUG", "Float key '%d' not found, initializing with default value", key);
                     // Write the initial value to NVS
@@ -48,6 +90,7 @@ void sclib_init() {
             case INT: {
                 int valueStored = 0; // Initialize the variable to store the value
                 read = nvs_manager_get_int(key, &valueStored);
+                ESP_LOGI("DEBUG", "Read tag number %d value from nvs: %d", id[i], valueStored);
                 if (read == ESP_ERR_NVS_NOT_FOUND) {
                     ESP_LOGW("DEBUG", "Int key '%d' not found, initializing with default value", key);
                     // Write the initial value to NVS
@@ -91,6 +134,32 @@ void sclib_init() {
                 ESP_LOGW("DEBUG", "Unhandled type '%d' for key '%d'", type[i], key);
                 break;
         }
+    }
+}
+
+
+//Initialization of the retentive tags in the nvs
+void sclib_init() {
+    esp_err_t read;
+    esp_err_t write;
+
+    // Initialize the NVS at the very first startup
+    int init = 0;
+    read = nvs_manager_get_int(0, &init);
+    if (read == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW("DEBUG", "Init key not found, initializing NVS");
+        write = nvs_manager_set_int(0, 1);
+        if (write != ESP_OK) {
+            ESP_LOGE("DEBUG", "Error writing default value to NVS: %s", esp_err_to_name(write));
+            return;
+        }
+        ESP_LOGI("DEBUG", "NVS initialization, moving PLC values to NVS");
+        PLC_to_NVS();
+    } else if (read != ESP_OK) {
+        ESP_LOGE("DEBUG", "Error reading from NVS: %s", esp_err_to_name(read));
+    } else {
+        ESP_LOGI("DEBUG", "NVS already initialized, skipping initialization and moving values to PLC");
+        NVS_to_PLC();
     }
 }
 
@@ -835,7 +904,7 @@ void sclib_SetAct(SetAct *setact, int force, float forceValue, int NotAllowed) {
   if (!setact->Init) {
     setact->Set.InputValue = setact->Set.Value;
     setact->Init = 1; // Mark as initialized
-    ESP_LOGI("DEBUG", "Set initialization: %f", setact->Set.Value);
+    ESP_LOGI("DEBUG", "SetAct Set initialization: %f", setact->Set.Value);
   }
 
   //Min and Max check

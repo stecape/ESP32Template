@@ -82,3 +82,4 @@ extern void *HMI_pointer[25];
 extern void *PLC_pointer[25];
 
 #endif
+  

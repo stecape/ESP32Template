@@ -52,7 +52,6 @@ void loop() {
   alarm(&PLC.LightOn, PLC.Light.Status==2, ALARM_REACTION_WARNING);
   if (test != PLC.LightOn.Status) {
     test = PLC.LightOn.Status;
-    ESP_LOGI("TEST", "Alarm status: %d", PLC.LightOn.Status);
   }
   check_alarms();
 }
