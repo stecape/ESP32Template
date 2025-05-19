@@ -54,12 +54,14 @@ _HMI PLC = {
 		.Status = 0,
 	},
 	.Temperature = {
-		.Decimals = 0,
+		.Decimals = 1,
 		.Init = false,
 		.Set.InputValue = 0,
 		.Set.Value = 0,
-		.Limit.Min = 20,
-		.Limit.Max = 70,
+		.Act.HMIValue = 0,
+		.Act.Value = 0,
+		.Limit.Min = 10,
+		.Limit.Max = 400,
 	},
 	.Pressure = {
 		.Decimals = 1,
@@ -79,35 +81,37 @@ _HMI PLC = {
 	},
 };
 
-int id[25] = {
-	87,
-	98,
-	99,
-	100,
-	101,
-	88,
-	89,
-	108,
-	109,
-	127,
-	128,
-	129,
-	130,
-	93,
-	94,
-	118,
-	119,
-	121,
-	122,
-	123,
-	124,
-	102,
-	103,
-	104,
-	105
+int id[27] = {
+	171,
+	191,
+	192,
+	193,
+	194,
+	167,
+	168,
+	203,
+	204,
+	222,
+	223,
+	224,
+	225,
+	226,
+	227,
+	162,
+	161,
+	185,
+	186,
+	187,
+	188,
+	189,
+	190,
+	163,
+	164,
+	166,
+	165
 };
 
-int type[25] = {
+int type[27] = {
 	INT,
 	REAL,
 	REAL,
@@ -121,21 +125,23 @@ int type[25] = {
 	REAL,
 	REAL,
 	REAL,
+	REAL,
+	REAL,
+	BOOL,
+	INT,
+	REAL,
+	REAL,
+	REAL,
+	REAL,
+	REAL,
+	REAL,
+	INT,
 	INT,
 	BOOL,
-	REAL,
-	REAL,
-	REAL,
-	REAL,
-	REAL,
-	REAL,
-	INT,
-	INT,
-	TIMESTAMP,
-	BOOL
+	TIMESTAMP
 };
 
-void *HMI_pointer[25] = {
+void *HMI_pointer[27] = {
 	(void*)&HMI.BatteryLevel.Decimals,
 	(void*)&HMI.BatteryLevel.Act.HMIValue,
 	(void*)&HMI.BatteryLevel.Act.Value,
@@ -147,10 +153,12 @@ void *HMI_pointer[25] = {
 	(void*)&HMI.Temperature.Init,
 	(void*)&HMI.Temperature.Set.InputValue,
 	(void*)&HMI.Temperature.Set.Value,
+	(void*)&HMI.Temperature.Act.HMIValue,
+	(void*)&HMI.Temperature.Act.Value,
 	(void*)&HMI.Temperature.Limit.Min,
 	(void*)&HMI.Temperature.Limit.Max,
-	(void*)&HMI.Pressure.Decimals,
 	(void*)&HMI.Pressure.Init,
+	(void*)&HMI.Pressure.Decimals,
 	(void*)&HMI.Pressure.Set.InputValue,
 	(void*)&HMI.Pressure.Set.Value,
 	(void*)&HMI.Pressure.Act.HMIValue,
@@ -159,11 +167,11 @@ void *HMI_pointer[25] = {
 	(void*)&HMI.Pressure.Limit.Max,
 	(void*)&HMI.LightOn.Status,
 	(void*)&HMI.LightOn.Reaction,
-	(void*)&HMI.LightOn.Ts,
-	(void*)&HMI.LightOn.Q
+	(void*)&HMI.LightOn.Q,
+	(void*)&HMI.LightOn.Ts
 };
 
-void *PLC_pointer[25] = {
+void *PLC_pointer[27] = {
 	(void*)&PLC.BatteryLevel.Decimals,
 	(void*)&PLC.BatteryLevel.Act.HMIValue,
 	(void*)&PLC.BatteryLevel.Act.Value,
@@ -175,10 +183,12 @@ void *PLC_pointer[25] = {
 	(void*)&PLC.Temperature.Init,
 	(void*)&PLC.Temperature.Set.InputValue,
 	(void*)&PLC.Temperature.Set.Value,
+	(void*)&PLC.Temperature.Act.HMIValue,
+	(void*)&PLC.Temperature.Act.Value,
 	(void*)&PLC.Temperature.Limit.Min,
 	(void*)&PLC.Temperature.Limit.Max,
-	(void*)&PLC.Pressure.Decimals,
 	(void*)&PLC.Pressure.Init,
+	(void*)&PLC.Pressure.Decimals,
 	(void*)&PLC.Pressure.Set.InputValue,
 	(void*)&PLC.Pressure.Set.Value,
 	(void*)&PLC.Pressure.Act.HMIValue,
@@ -187,7 +197,6 @@ void *PLC_pointer[25] = {
 	(void*)&PLC.Pressure.Limit.Max,
 	(void*)&PLC.LightOn.Status,
 	(void*)&PLC.LightOn.Reaction,
-	(void*)&PLC.LightOn.Ts,
-	(void*)&PLC.LightOn.Q
+	(void*)&PLC.LightOn.Q,
+	(void*)&PLC.LightOn.Ts
 };
-  

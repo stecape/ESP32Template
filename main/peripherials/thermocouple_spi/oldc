@@ -1,0 +1,109 @@
+/*
+#include "thermocouple_spi.h"
+#include "driver/spi_master.h"
+#include "esp_log.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include <math.h> // Include math.h for NAN definition
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+
+#define TAG "Thermocouple"
+#define PIN_NUM_MISO 21
+#define PIN_NUM_MOSI 19
+#define PIN_NUM_CLK 33
+#define PIN_NUM_CS 5
+
+static spi_device_handle_t spi;
+static float last_valid_temperature = NAN; // Store the last valid temperature
+static SemaphoreHandle_t temperature_semaphore = NULL;
+static TickType_t last_read_time = 0;
+
+void thermocouple_init() {
+    spi_bus_config_t buscfg = {
+        .miso_io_num = PIN_NUM_MISO,
+        .mosi_io_num = PIN_NUM_MOSI,
+        .sclk_io_num = PIN_NUM_CLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1
+    };
+
+    spi_device_interface_config_t devcfg = {
+        .clock_speed_hz = 1 * 1000 * 1000, // 1 MHz
+        .mode = 0,                         // SPI mode 0
+        .spics_io_num = PIN_NUM_CS,        // CS pin
+        .queue_size = 1,
+    };
+
+    ESP_ERROR_CHECK(spi_bus_initialize(VSPI_HOST, &buscfg, SPI_DMA_CH_AUTO));
+    ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &devcfg, &spi));
+    ESP_LOGI(TAG, "Thermocouple SPI initialized");
+
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << PIN_NUM_CS),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
+
+    // Initialize semaphore
+    temperature_semaphore = xSemaphoreCreateMutex();
+    if (temperature_semaphore == NULL) {
+        ESP_LOGE(TAG, "Failed to create semaphore");
+    }
+}
+
+float thermocouple_read_temperature() {
+    if (temperature_semaphore == NULL) {
+        ESP_LOGE(TAG, "Semaphore not initialized");
+        return NAN;
+    }
+
+    if (xSemaphoreTake(temperature_semaphore, portMAX_DELAY) == pdTRUE) {
+        TickType_t current_time = xTaskGetTickCount();
+        if (current_time - last_read_time < pdMS_TO_TICKS(250)) {
+            //ESP_LOGW(TAG, "Temperature read too soon, returning last valid temperature");
+            xSemaphoreGive(temperature_semaphore);
+            return last_valid_temperature;
+        }
+
+        last_read_time = current_time;
+
+        uint8_t tx_data[2] = {0};
+        uint8_t rx_data[2] = {0};
+
+        // Manually control CS pin to ensure proper SPI transaction
+        gpio_set_level(PIN_NUM_CS, 0); // Lower CS
+        spi_transaction_t t = {
+            .length = 16, // Transaction length in bits
+            .tx_buffer = tx_data,
+            .rx_buffer = rx_data
+        };
+        ESP_ERROR_CHECK(spi_device_polling_transmit(spi, &t));
+        gpio_set_level(PIN_NUM_CS, 1); // Raise CS
+
+        int16_t raw_value = (rx_data[0] << 8) | rx_data[1];
+        raw_value >>= 3; // Assuming 13-bit data
+
+        if (raw_value & 0x04) { // Check for open thermocouple
+            ESP_LOGW(TAG, "Thermocouple error detected, keeping last valid temperature");
+            xSemaphoreGive(temperature_semaphore);
+            return last_valid_temperature; // Return the last valid temperature
+        }
+
+        if (raw_value & 0x1000) { // Check if negative
+            raw_value |= 0xE000; // Sign extend
+        }
+
+        last_valid_temperature = raw_value * 0.25; // Update the last valid temperature
+        xSemaphoreGive(temperature_semaphore);
+        return last_valid_temperature; // Return the new valid temperature
+    } else {
+        ESP_LOGE(TAG, "Failed to take semaphore");
+        return NAN;
+    }
+}
+*/
+

@@ -17,6 +17,7 @@
 #include "services/NVS/nvs_manager.h"
 #include "services/battery/battery.h"
 #include "sclib/alarms/alarms.h"
+#include "peripherials/thermocouple_spi/thermocouple_spi.h"
 
 //Librerie per test
 #include <math.h>
@@ -37,6 +38,7 @@ void setup() {
   sclib_init();
   led_setup();
   battery_setup();
+  pt100_init(); // Initialize thermocouple SPI
 }
 
 
@@ -45,7 +47,7 @@ void loop() {
   led_loop();
   battery_loop(&PLC.BatteryLevel);
   sclib_logic(&PLC.Light);
-  sclib_Set(&PLC.Temperature, 0, 0.0, 0);
+  sclib_SetAct(&PLC.Temperature, 0, 0.0, 0);
   sclib_SetAct(&PLC.Pressure, 0, 0.0, 0);
   sclib_writeSetAct(&PLC.Pressure, 7.2);
   mqtt_updHMI(false);
@@ -54,6 +56,10 @@ void loop() {
     test = PLC.LightOn.Status;
   }
   check_alarms();
+
+  // Read temperature from thermocouple
+  float temperature = pt100_read_temperature();
+  sclib_writeSetAct(&PLC.Temperature, temperature);
 }
 
 

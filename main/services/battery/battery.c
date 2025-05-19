@@ -18,18 +18,6 @@ bool is_connected_to_power(void) {
     return gpio_get_level(POWER_DETECT_PIN) == 1; // HIGH means connected to power
 }
 
-// Function to get the configured low-power mode
-low_power_mode_t get_low_power_mode(void) {
-    #if CONFIG_LOW_POWER_MODE_DEEP_SLEEP
-        return LOW_POWER_DEEP_SLEEP;
-    #elif CONFIG_LOW_POWER_MODE_LIGHT_SLEEP
-        return LOW_POWER_LIGHT_SLEEP;
-    #elif CONFIG_LOW_POWER_MODE_HIBERNATE
-        return LOW_POWER_HIBERNATE;
-    #else
-        return LOW_POWER_DEEP_SLEEP; // Default to Deep Sleep
-    #endif
-}
 
 float readBatteryVoltage() {
   int raw;

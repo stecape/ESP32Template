@@ -502,6 +502,14 @@ CONFIG_MQTT_HOMEASSISTANT_LWT_QOS=0
 #
 # CONFIG_PROVA123 is not set
 # end of Pot - Test
+
+#
+# Pot - Low Power Configuration
+#
+CONFIG_LOW_POWER_MODE_DEEP_SLEEP=y
+# CONFIG_LOW_POWER_MODE_LIGHT_SLEEP is not set
+# CONFIG_LOW_POWER_MODE_HIBERNATE is not set
+# end of Pot - Low Power Configuration
 # end of Pot
 
 #

@@ -1,4 +1,3 @@
-
 #ifndef HMI_h
 #define HMI_h
 
@@ -68,7 +67,7 @@ typedef struct {
 typedef struct {
 	Act BatteryLevel;
 	LogicSelection Light;
-	Set Temperature;
+	SetAct Temperature;
 	SetAct Pressure;
 	Alarm LightOn;
 } _HMI;
@@ -76,10 +75,9 @@ typedef struct {
 extern _HMI HMI;
 extern _HMI PLC;
 
-extern int id[25];
-extern int type[25];
-extern void *HMI_pointer[25];
-extern void *PLC_pointer[25];
+extern int id[27];
+extern int type[27];
+extern void *HMI_pointer[27];
+extern void *PLC_pointer[27];
 
 #endif
-  
