@@ -6,13 +6,24 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 0.1.0~2
+  hayschan/max6675:
+    component_hash: d414c81439e758d90ef92c08164e9d722936f79451983d4d16d2349de7ea716c
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.4.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.0.6
   idf:
     source:
       type: idf
-    version: 5.5.0
+    version: 5.4.1
 direct_dependencies:
 - espressif/qrcode
+- hayschan/max6675
 - idf
-manifest_hash: b57f65f29710ef929fa8ffe27c3958b625aa2030b1b76bf5ebee4bc734792125
+manifest_hash: 53efa2d2f08d59ecbcdc6e34b40552b2c691eb98759cb92103c36267ca7a8cb3
 target: esp32
 version: 2.0.0

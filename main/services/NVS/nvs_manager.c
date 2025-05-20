@@ -188,7 +188,7 @@ esp_err_t nvs_manager_set_timestamp(int key, time_t value) {
     time_t current_value;
     esp_err_t err = nvs_manager_get_timestamp(key, &current_value);
     if (err == ESP_OK && current_value == value) {
-        ESP_LOGI(TAG, "Key '%s' already has the timestamp %ld, skipping write", key_str, value);
+        ESP_LOGI(TAG, "Key '%s' already has the timestamp %lld, skipping write", key_str, (long long)value);
         return ESP_OK; // Evita la scrittura se il valore è già uguale
     }
 
@@ -201,7 +201,7 @@ esp_err_t nvs_manager_set_timestamp(int key, time_t value) {
 
     err = nvs_set_blob(handle, key_str, &value, sizeof(value)); // Use key_str
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "Saved timestamp key '%s': %ld", key_str, value);
+        ESP_LOGI(TAG, "Saved timestamp key '%s': %lld", key_str, (long long)value);
         nvs_commit(handle);
     } else {
         ESP_LOGE(TAG, "Failed to save timestamp key '%s': %s", key_str, esp_err_to_name(err));
@@ -226,7 +226,7 @@ esp_err_t nvs_manager_get_timestamp(int key, time_t *value) {
     size_t required_size = sizeof(*value);
     err = nvs_get_blob(handle, key_str, value, &required_size); // Use key_str
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "Read timestamp key '%s': %ld", key_str, *value);
+        ESP_LOGI(TAG, "Read timestamp key '%s': %lld", key_str, (long long)*value);
     } else if (err == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGW(TAG, "Timestamp key '%s' not found", key_str);
         //*value = 0; // Default value if key not found

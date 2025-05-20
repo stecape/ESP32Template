@@ -18,10 +18,15 @@
 #include "services/battery/battery.h"
 #include "sclib/alarms/alarms.h"
 #include "peripherials/thermocouple_spi/thermocouple_spi.h"
+#include "peripherials/pt100_spi/pt100_spi.h" // Include per PT100
+#include "driver/gpio.h"
 
-//Librerie per test
-#include <math.h>
-//Librerie per test
+// Variabili globali per PT100
+static Max31865 *pt100_dev = NULL;
+
+static TaskHandle_t task_handle = NULL; // Spostato qui per visibilità globale
+
+void interrupt(void); // Prototipo per evitare implicit declaration
 
 #define CONFIG_INTERRUPT_CYCLE_TIME_S 5
 
@@ -30,6 +35,8 @@ int test = 0;
 void setup() {
   // Setup calls
   ESP_LOGI("HELLO", "Ciao Cacà, Ciao Tommy! =)");
+  // Installa il servizio ISR GPIO una sola volta all'avvio (prima di qualsiasi setup periferica che usa interrupt)
+  ESP_ERROR_CHECK(gpio_install_isr_service(0));
   // Create default event loop
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   ESP_ERROR_CHECK(nvs_manager_init());
@@ -38,7 +45,10 @@ void setup() {
   sclib_init();
   led_setup();
   battery_setup();
-  pt100_init(); // Initialize thermocouple SPI
+  //pt100_init(); // Initialize thermocouple SPI
+
+  // Funzione di inizializzazione PT100
+  ESP_ERROR_CHECK(setup_pt100_3wires(&pt100_dev, /*MISO*/21, /*MOSI*/19, /*SCK*/33, /*CS*/5, /*DRDY*/-1, HSPI_HOST));
 }
 
 
@@ -58,20 +68,12 @@ void loop() {
   check_alarms();
 
   // Read temperature from thermocouple
-  float temperature = pt100_read_temperature();
+  //float temperature = pt100_read_temperature();
+  // Funzione di lettura temperatura PT100 (cached, aggiornata ogni 100ms)
+  float temperature = get_pt100_temperature_cached();
   sclib_writeSetAct(&PLC.Temperature, temperature);
+
 }
-
-
-void interrupt() {
-  // Interrupt calls
-  led_interrupt();
-}
-
-
-
-
-static TaskHandle_t task_handle = NULL;
 
 // Definizione della ISR del timer
 bool IRAM_ATTR timer_isr_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx) {
@@ -115,13 +117,17 @@ void interrupt_task(void *arg) {
   }
 }
 
+void interrupt() {
+  // Interrupt calls
+  led_interrupt();
+}
+
 void app_main(void) {
   // Inizializza in timer
   init_timer();
   // Creazione del task dedicato
-  xTaskCreatePinnedToCore(interrupt_task, "interrupt_task", 4096, NULL, 10, &task_handle, 1); // Pinning to core 1
+  xTaskCreatePinnedToCore(interrupt_task, "interrupt_task", 4096, NULL, 10, &task_handle, 1);
   setup();
-
   while (true) {
     loop();
     vTaskDelay(10 / portTICK_PERIOD_MS);

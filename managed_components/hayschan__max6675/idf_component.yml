@@ -1,0 +1,11 @@
+dependencies:
+  idf:
+    version: '>=4.4.0'
+description: MAX6675 thermocouple amplifier SPI driver
+documentation: https://github.com/hayschan/max6675/tree/main/README.md
+issues: https://github.com/hayschan/max6675/issues
+maintainers:
+- Hays Chan <blog@haysc.tech>
+repository: https://github.com/hayschan/max6675.git
+url: https://github.com/hayschan/max6675
+version: 1.0.6

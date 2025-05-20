@@ -34,6 +34,7 @@
 	},
 	"runArgs": [
 						"--privileged",
-						"--device=/dev/ttyACM0"
+						"--device=/dev/ttyACM0",
+    				"--name=esp32-devcontainer"
 					]
 }

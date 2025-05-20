@@ -721,7 +721,7 @@ void button_init(void)
     gpio_config(&io_conf);
 
     // Install the ISR service
-    gpio_install_isr_service(0);
+    //gpio_install_isr_service(0); // ATTENZIONE: ora viene installato dal main una sola volta!
 
     // Attach the interrupt handler
     gpio_isr_handler_add(BUTTON_GPIO_PIN, button_isr_handler, NULL);
