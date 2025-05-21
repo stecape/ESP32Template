@@ -19,16 +19,15 @@
 #include "sclib/alarms/alarms.h"
 #include "peripherials/thermocouple_spi/thermocouple_spi.h"
 #include "peripherials/pt100_spi/pt100_spi.h" // Include per PT100
+#include "regulators/temperature/temperature.h"
+
 #include "driver/gpio.h"
-
-// Variabili globali per PT100
-static Max31865 *pt100_dev = NULL;
-
-static TaskHandle_t task_handle = NULL; // Spostato qui per visibilità globale
 
 void interrupt(void); // Prototipo per evitare implicit declaration
 
-#define CONFIG_INTERRUPT_CYCLE_TIME_S 5
+#define CONFIG_INTERRUPT_CYCLE_TIME_S 0.25
+
+static TaskHandle_t task_handle = NULL;
 
 int test = 0;
 
@@ -44,34 +43,41 @@ void setup() {
   mqtt_setup();
   sclib_init();
   led_setup();
-  battery_setup();
-  //pt100_init(); // Initialize thermocouple SPI
-
-  // Funzione di inizializzazione PT100
-  ESP_ERROR_CHECK(setup_pt100_3wires(&pt100_dev, /*MISO*/21, /*MOSI*/19, /*SCK*/33, /*CS*/5, /*DRDY*/-1, HSPI_HOST));
+  //battery_setup();
+  temperature_setup();
 }
 
 
 void loop() {
   // Loop calls
   led_loop();
-  battery_loop(&PLC.BatteryLevel);
+  //battery_loop(&PLC.BatteryLevel);
   sclib_logic(&PLC.Light);
   sclib_SetAct(&PLC.Temperature, 0, 0.0, 0);
   sclib_SetAct(&PLC.Pressure, 0, 0.0, 0);
-  sclib_writeSetAct(&PLC.Pressure, 7.2);
+  //sclib_writeSetAct(&PLC.Pressure, 7.2);
   mqtt_updHMI(false);
   alarm(&PLC.LightOn, PLC.Light.Status==2, ALARM_REACTION_WARNING);
   if (test != PLC.LightOn.Status) {
     test = PLC.LightOn.Status;
   }
   check_alarms();
-
-  // Read temperature from thermocouple
-  //float temperature = pt100_read_temperature();
+  temperature_loop();
+  
   // Funzione di lettura temperatura PT100 (cached, aggiornata ogni 100ms)
-  float temperature = get_pt100_temperature_cached();
-  sclib_writeSetAct(&PLC.Temperature, temperature);
+  // float temperature = get_pt100_temperature_cached();
+  // sclib_writeSetAct(&PLC.Temperature, temperature);
+
+  //static int prev_hmi_status = -1;
+  //if (HMI.Light.Status != prev_hmi_status) {
+  //  prev_hmi_status = HMI.Light.Status;
+    // if (pt100_dev) {
+    //   max31865_rtd_config_t rtd_cfg = { .ref = 430.0f, .nominal = 100.0f };
+    //   float temperature = get_pt100_temperature(pt100_dev, rtd_cfg);
+    //   sclib_writeSetAct(&PLC.Temperature, temperature);
+    //   ESP_LOGI("PT100-ONE-SHOT", "Temperatura PT100 aggiornata su cambio HMI.Light.Status: %.2f°C", temperature);
+    // }
+  //}
 
 }
 
@@ -119,7 +125,7 @@ void interrupt_task(void *arg) {
 
 void interrupt() {
   // Interrupt calls
-  led_interrupt();
+  temperature_interrupt();
 }
 
 void app_main(void) {

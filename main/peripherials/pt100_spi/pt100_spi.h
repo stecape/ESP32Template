@@ -94,5 +94,8 @@ esp_err_t max31865_get_rtd(Max31865 *dev, uint16_t *rtd, Max31865Error *fault);
 
 esp_err_t setup_pt100_3wires(Max31865 **pdev, int miso, int mosi, int sck, int cs, int drdy, spi_host_device_t host);
 float get_pt100_temperature_cached(void);
+float get_pt100_temperature(Max31865 *dev, max31865_rtd_config_t rtd_cfg);
+// --- LOGICA ADAFRUIT: Conversione RTD e gestione registri ---
+float adafruit_rtd_to_temperature(uint16_t rtd, float ref_resistor, float nominal_resistor);
 
 #endif  // PT100_SPI_H

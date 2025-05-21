@@ -15,12 +15,14 @@ _HMI HMI = {
 		.Status = 0,
 	},
 	.Temperature = {
-		.Decimals = 0,
+		.Decimals = 1,
 		.Init = false,
 		.Set.InputValue = 0,
 		.Set.Value = 0,
-		.Limit.Min = 20,
-		.Limit.Max = 70,
+		.Act.HMIValue = 0,
+		.Act.Value = 0,
+		.Limit.Min = 10,
+		.Limit.Max = 400,
 	},
 	.Pressure = {
 		.Decimals = 1,
@@ -30,7 +32,7 @@ _HMI HMI = {
 		.Act.HMIValue = 0,
 		.Act.Value = 0,
 		.Limit.Min = 0,
-		.Limit.Max = 10,
+		.Limit.Max = 100,
 	},
 	.LightOn = {
 		.Status = 0,
@@ -71,7 +73,7 @@ _HMI PLC = {
 		.Act.HMIValue = 0,
 		.Act.Value = 0,
 		.Limit.Min = 0,
-		.Limit.Max = 10,
+		.Limit.Max = 100,
 	},
 	.LightOn = {
 		.Status = 0,

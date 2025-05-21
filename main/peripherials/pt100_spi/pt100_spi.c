@@ -283,6 +283,14 @@ esp_err_t max31865_get_rtd(Max31865 *dev, uint16_t *rtd, Max31865Error *fault) {
     *rtd >>= 1U;
     ESP_LOGI(TAG, "MAX31865 RTD value: %u", *rtd);
 
+    // ADAFRUIT: Disabilita VBias dopo lettura one-shot (conversione non continua)
+    if (!oldConfig.autoConversion) {
+        max31865_config_t cfg = oldConfig;
+        cfg.vbias = false;
+        esp_err_t vbias_err = max31865_set_config(dev, cfg);
+        ESP_LOGI(TAG, "[ADAFRUIT] VBias disabilitato dopo lettura one-shot, err=%d", vbias_err);
+    }
+
     return restoreConfig ? max31865_set_config(dev, oldConfig) : ESP_OK;
 }
 
@@ -293,9 +301,14 @@ float get_pt100_temperature(Max31865 *dev, max31865_rtd_config_t rtd_cfg) {
     ESP_LOGI(TAG, "[DEBUG] Prima di max31865_get_rtd");
     esp_err_t ret = max31865_get_rtd(dev, &rtd, &fault);
     ESP_LOGI(TAG, "[DEBUG] Dopo max31865_get_rtd: ret=%d", ret);
+    // Lettura e log del registro di fault
+    Max31865Error fault_reg = MAX31865_NO_ERROR;
+    esp_err_t fault_err = max31865_read_fault_status(dev, &fault_reg);
+    ESP_LOGI(TAG, "[DEBUG] Registro di fault: err=%d, code=%d, descrizione=%s", fault_err, fault_reg, max31865_error_to_string(fault_reg));
     if (ret == ESP_OK) {
         ESP_LOGI(TAG, "[DEBUG] max31865_get_rtd OK, rtd=%u", rtd);
-        return max31865_rtd_to_temperature(rtd, rtd_cfg);
+        // Sostituito max31865_rtd_to_temperature con adafruit_rtd_to_temperature
+        return adafruit_rtd_to_temperature(rtd, rtd_cfg.ref, rtd_cfg.nominal);
     }
     ESP_LOGW(TAG, "[FUNC] max31865_get_rtd failed, returning -273.0");
     return -273.0f;
@@ -316,7 +329,7 @@ void pt100_temperature_task(void *arg) {
         } else {
             ESP_LOGI(TAG, "Temperatura PT100 aggiornata: %.2f°C", temp);
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -333,13 +346,14 @@ esp_err_t setup_pt100_3wires(Max31865 **pdev, int miso, int mosi, int sck, int c
     if (!*pdev) return ESP_ERR_NO_MEM;
     esp_err_t err = max31865_begin(*pdev, config);
     ESP_LOGI(TAG, "setup_pt100_3wires: chiamata xTaskCreate...");
-    if (err == ESP_OK) {
-        if (xTaskCreate(pt100_temperature_task, "pt100_temp_task", 4096, *pdev, 5, NULL) == pdPASS) {
-            ESP_LOGI(TAG, "Task pt100_temp_task creato con successo");
-        } else {
-            ESP_LOGE(TAG, "Errore creazione task pt100_temp_task");
-        }
-    }
+    // Disabilitato: non creare più il task di polling periodico
+    // if (err == ESP_OK) {
+    //     if (xTaskCreate(pt100_temperature_task, "pt100_temp_task", 4096, *pdev, 5, NULL) == pdPASS) {
+    //         ESP_LOGI(TAG, "Task pt100_temp_task creato con successo");
+    //     } else {
+    //         ESP_LOGE(TAG, "Errore creazione task pt100_temp_task");
+    //     }
+    // }
     return err;
 }
 
@@ -347,17 +361,39 @@ float get_pt100_temperature_cached() {
     return pt100_temperature;
 }
 
-// Conversione RTD -> Temperatura (approssimazione Callendar–Van Dusen per PT100)
-float max31865_rtd_to_temperature(uint16_t rtd, max31865_rtd_config_t rtdConfig) {
-    float Rt = ((float)rtd * rtdConfig.ref) / 32768.0f;
-    float R0 = rtdConfig.nominal;
-    // Coefficienti Callendar–Van Dusen per PT100
+
+// Conversione RTD -> Temperatura secondo Adafruit (Callendar–Van Dusen, fedele all'implementazione Adafruit)
+// https://github.com/adafruit/Adafruit_MAX31865/blob/master/Adafruit_MAX31865.cpp
+float adafruit_rtd_to_temperature(uint16_t rtd, float ref_resistor, float nominal_resistor) {
+    // Rt = (rtd / 32768) * ref_resistor
+    float Rt = (float)rtd;
+    Rt /= 32768.0f;
+    Rt *= ref_resistor;
+
+    // Callendar–Van Dusen (T > 0°C)
     const float A = 3.9083e-3f;
     const float B = -5.775e-7f;
-    ESP_LOGI(TAG, "RTD conversion: rtd=%u, Rt=%.2f, R0=%.2f", rtd, Rt, R0);
-    float temp = -A;
-    temp += sqrtf(A*A - 4*B*(1 - Rt/R0));
-    temp /= (2*B);
-    ESP_LOGI(TAG, "PT100 temperature: %.2f°C", temp);
-    return temp;
+    const float C = -4.183e-12f; // Non usato per T > 0
+
+    float Z1 = -A;
+    float Z2 = A * A - (4.0f * B);
+    float Z3 = 4.0f * B / nominal_resistor;
+    float Z4 = 2.0f * B;
+
+    float temp = Z1 + sqrtf(Z2 + Z3 * Rt);
+    temp /= Z4;
+
+    if (temp >= 0.0f) {
+        return temp;
+    }
+
+    // Adafruit: se T < 0, usa la formula polinomiale (non supportata, restituisce NAN)
+    // (opzionale: puoi restituire NAN o -273.15 per coerenza)
+    return -273.15;
+}
+
+// Lettura RTD secondo Adafruit (bitmask, gestione fault)
+// Restituisce true se fault, false se ok
+bool adafruit_check_fault(uint8_t fault_byte) {
+    return fault_byte != 0;
 }

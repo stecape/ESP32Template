@@ -2,27 +2,24 @@
 #define THERMOCOUPLE_SPI_H
 
 #include <stdint.h>
-#include "driver/spi_master.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include <math.h>
-
-#define TAG "PT100"
-#define PIN_NUM_MISO 21
-#define PIN_NUM_MOSI 19
-#define PIN_NUM_CLK 33
-#define PIN_NUM_CS 5
 
 /**
- * @brief Initialize the PT100 SPI interface.
+ * @brief Inizializza la termocoppia K (MAX6675) via SPI.
  */
-void pt100_init();
+void thermocouple_init();
 
 /**
- * @brief Read the temperature from the PT100 sensor.
+ * @brief Legge la temperatura dalla termocoppia K (MAX6675).
  *
- * @return Temperature in degrees Celsius.
+ * @return Temperatura in gradi Celsius.
  */
-float pt100_read_temperature();
+float thermocouple_read_temperature();
+
+/**
+ * @brief Restituisce la temperatura dalla termocoppia K (MAX6675) dalla cache.
+ *
+ * @return Temperatura in gradi Celsius.
+ */
+float thermocouple_get_temperature_cached();
 
 #endif // THERMOCOUPLE_SPI_H
