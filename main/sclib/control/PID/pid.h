@@ -88,6 +88,12 @@ void PID_SyncRamp(PID_Handle *pid, float setpoint_target);
  *   PID_EXIT_CRITICAL();
  */
 void PID_Stop(PID_Handle *pid);
+/**
+ * PWM a treno di semionde per SSR zero crossing.
+ * tick_10ms: contatore 0...24 (per periodo 250ms a 50Hz)
+ * Restituisce true se la semionda corrente va accesa.
+ */
+bool PID_SSR_Burst(PID_Handle *pid, uint32_t tick_10ms);
 
 #ifdef __cplusplus
 }

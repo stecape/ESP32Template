@@ -148,3 +148,13 @@ float PID_Compute(PID_Handle *pid, float setpoint, float measure, float referenc
 
     return out_tot_sat;
 }
+
+bool PID_SSR_Burst(PID_Handle *pid, uint32_t tick_10ms) {
+    if (!pid) return false;
+    // Uscita PID normalizzata 0-100%
+    float output = pid->state.out_tot;
+    // Ogni step è 4% (1 semionda su 25)
+    uint32_t n_on = (uint32_t)((output * 25.0f + 50.0f) / 100.0f); // arrotonda correttamente
+    if (n_on > 25) n_on = 25;
+    return (tick_10ms < n_on);
+}
