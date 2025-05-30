@@ -138,15 +138,39 @@ float PID_Compute(PID_Handle *pid, float setpoint, float measure, float referenc
     }
     // Aggiorna integrale con anti-windup (incremento corretto: (aw_term / Taw) * dt)
     if (p->Taw > 0.0f) {
-        s->integrale += (aw_term / p->Taw) * p->dt;
+        aw_term = (aw_term / p->Taw) * p->dt;
+        s->integrale += aw_term;
     }
-    // Aggiorna stato
-    s->errore_prec = errore_scalato;
-    s->out_pid = out_pid_sat;
-    s->out_tot = out_tot_sat;
-    s->output_ramp_initialized = false; // resetta la rampa di uscita se non in stop
 
-    return out_tot_sat;
+    // --- Rampa sull'uscita (output_gradient) sempre attiva ---
+    float out_ramp = s->out; // valore precedente
+    float out_target = out_tot_sat;
+    if (p->output_gradient > 0.0f && p->dt > 0.0f) {
+        float delta = out_target - out_ramp;
+        float max_step = p->output_gradient * p->dt;
+        if (fabsf(delta) <= max_step) {
+            out_ramp = out_target;
+        } else {
+            out_ramp += (delta > 0 ? max_step : -max_step);
+        }
+    } else {
+        out_ramp = out_target;
+    }
+    // Aggiorna stato informativo
+    s->error = errore;
+    s->errore_prec = errore_scalato;
+    s->proportionalCorrection = out_p;
+    s->integralCorrection = out_i;
+    s->antiWindupContribute = aw_term;
+    s->derivativeCorrection = out_d;
+    s->totalCorrection = out_pid;
+    s->out_pid = out_pid_sat;
+    s->rawOut = out_tot;
+    s->out_tot = out_tot_sat;
+    s->out = out_ramp;
+    s->output_ramp_initialized = false;
+
+    return out_ramp;
 }
 
 bool PID_SSR_Burst(PID_Handle *pid, uint32_t tick_10ms) {

@@ -38,13 +38,21 @@ typedef struct {
 
 // Stato interno PID
 typedef struct {
-    float integrale;
-    float errore_prec;
-    float out_pid; // correzione PID (pre-saturazione)
-    float out_tot; // uscita totale (reference+correzione, post-saturazione)
-    float setpoint_ramp; // setpoint rampato (per istanza PID)
-    bool ramp_initialized; // flag inizializzazione ramp
-    float output_ramp; // uscita rampata (per stop)
+    float error;                    // Errore attuale (setpoint - measure)
+    float errore_prec;              // Errore precedente - Errore scalato da Kp - (per derivata)
+    float proportionalCorrection;   // Contributo proporzionale
+    float integralCorrection;       // Contributo integrale
+    float antiWindupContribute;     // Contributo integrale
+    float derivativeCorrection;     // Contributo derivativo
+    float totalCorrection;          // Somma P+I+D (pre-saturazione)
+    float out_pid;                  // correzione PID (post saturazione-saturazione)
+    float rawOut;                   // Correzione PID saturata + reference (pre-saturazione totale)
+    float out_tot;                  // uscita totale (reference+correzione, post-saturazione)
+    float out;                      // Uscita dopo la rampa
+    float integrale;                // Stato interno integrale
+    float setpoint_ramp;            // setpoint rampato (per istanza PID)
+    bool ramp_initialized;          // flag inizializzazione ramp
+    float output_ramp;              // uscita rampata (per stop)
     bool output_ramp_initialized;
 } PID_State;
 

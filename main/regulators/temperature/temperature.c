@@ -48,23 +48,49 @@ void temperature_setup(void) {
 void temperature_loop(void) {
     // Aggiorna la temperatura letta dalla termocoppia e scrivila su PLC.Temperature
     float temperature = thermocouple_get_temperature_cached();
-    sclib_writeSetAct(&PLC.Temperature, temperature);
+    sclib_writeAct(&PLC.ActualTemperature, temperature);
     // Aggiorna HMI con il valore attuale della batteria (output PID)
-    sclib_writeAct(&PLC.BatteryLevel, PLC.BatteryLevel.Act.Value);
-    sclib_writeSetAct(&PLC.Pressure, PLC.Pressure.Act.Value);
+    sclib_writeAct(&PLC.ActualPower, PLC.PID.Out);
 }
 
 void temperature_interrupt(void) {
+    // Test del PID. Cancellare una volta debuggato (se vuoi)
+    temperaturePID.params.gradiente = PLC.PID.SetpointGradient.Set.Value;
+    temperaturePID.params.Kp = PLC.PID.kP.Set.Value;
+    temperaturePID.params.Ti = PLC.PID.Ti.Set.Value;
+    temperaturePID.params.Td = PLC.PID.Ti.Set.Value;
+    temperaturePID.params.Gp = PLC.PID.Gp.Set.Value;
+    temperaturePID.params.Taw = PLC.PID.Taw.Set.Value;
+    temperaturePID.params.out_min = PLC.PID.PidMin.Set.Value;
+    temperaturePID.params.out_max = PLC.PID.PidMax.Set.Value;
+    temperaturePID.params.ref_min = PLC.PID.OutMin.Set.Value;
+    temperaturePID.params.ref_max = PLC.PID.OutMax.Set.Value;
+    // Test del PID. Cancellare una volta debuggato (se vuoi)
+
+
     // Esegui la regolazione PID ogni 250ms
-    float setpoint = PLC.Temperature.Set.Value;
-    float actual   = PLC.Temperature.Act.Value;
+    float setpoint = PLC.TemperatureReference.Set.Value;
+    float actual   = PLC.ActualTemperature.Act.Value;
     float reference = 0.0f;
-    bool stop = (PLC.Light.Status != 2);
+    bool stop = (PLC.Heating.Status != 2);
     float pid_output = PID_Compute(&temperaturePID, setpoint, actual, reference, stop);
-    PLC.BatteryLevel.Act.Value = pid_output;
-    PLC.Pressure.Act.Value = temperaturePID.state.integrale;
     // Sincronizza il burst PWM SSR con il nuovo ciclo PID
     ssr_tick_10ms = 0;
+
+    
+    // Test del PID. Cancellare una volta debuggato (se vuoi)
+    PLC.PID.Error = temperaturePID.state.error;
+    PLC.PID.kpError = temperaturePID.state.errore_prec;
+    PLC.PID.ProportionalCorrection = temperaturePID.state.proportionalCorrection;
+    PLC.PID.IntegralCorrection = temperaturePID.state.integralCorrection;
+    PLC.PID.AntiWindupContribute = temperaturePID.state.antiWindupContribute;
+    PLC.PID.DerivativeCorrection = temperaturePID.state.derivativeCorrection;
+    PLC.PID.Correction = temperaturePID.state.totalCorrection;
+    PLC.PID.PidOut = temperaturePID.state.out_pid;
+    PLC.PID.RawOut = temperaturePID.state.rawOut;
+    PLC.PID.OutSat = temperaturePID.state.out_tot;
+    PLC.PID.Out = pid_output;
+    // Test del PID. Cancellare una volta debuggato (se vuoi)
 }
 
 void temperature_ssr_setup(void) {
