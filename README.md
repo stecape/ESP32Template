@@ -53,9 +53,6 @@ Please use the following feedback channels:
 We will get back to you as soon as possible.
 
 
-python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset  --port COM3 write_flash --flash_mode dio --flash_size detect --flash_freq 40m 0x1000 bootloader/bootloader.bin 0x10000 HelloWorld.bin 0x8000 partition_table/partition-table.bin 0x110000 ../ManufacturingData/bin/prefix-1.bin
-
-
 #Run in container: dopo il clone, ho aperto un terminal ESP-IDF e ho seguito i due step seguenti:
 1- Run the following CMake command to configure the project and generate the build.ninja file:
     cmake -S . -B build
@@ -78,3 +75,16 @@ dovrebbe apparire qualcosa del genere. Quello è il nome del tuo dispositivo usb
 quindi sempre in VS Code apri la cartella .vscode, file settings.json e modifica idf.port con il giusto nome:
   "idf.port": "/dev/ttyACM0",
 A quel punto dovresti esserci. Se non si apre riavvia VS Code
+
+
+
+#Manufacturing data
+
+Come prima cosa bisogna generare salt e verifier. Si lancia lo script di python dedicato. Namespace al momento è flowerpot.
+Incolla l'output dei rispettivi file, config.csv e values.csv.
+Compila per correttezza il file Credentials.csv per la generazione automatica delle immagini tramite tool dedicato.
+Ora è necessario installare i requirements: pip install -r /home/codespace/esp/v5.4.1/esp-idf/tools/requirements/requirements.core.txt
+Per quel che ci riguarda, al momento ci è sufficiente generare le immagini una per una a mano. Per farlo da dentro manufacturing data esegui il seguente comando.
+codespace ➜ /workspaces/ESP-IDF/ESP32Template/ManufacturingData (main) $ python ~/esp/v5.4.1/esp-idf/tools/mass_mfg/mfg_gen.py generate config.csv values.csv Forno 0x3000
+Ok, adesso bisogna flasharle. Si puo' fare dal tool dall'estensione di ESP-IDF di visual studio, tramite device partition explorer, oppure col comando dedicato:
+python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset  --port COM3 write_flash --flash_mode dio --flash_size detect --flash_freq 40m 0x1000 bootloader/bootloader.bin 0x10000 ESP32TEMPLATE.bin 0x8000 partition_table/partition-table.bin 0x210000 ../ManufacturingData/bin/Forno-1.bin
