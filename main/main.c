@@ -52,10 +52,6 @@ void loop() {
   // Loop calls
   led_loop();
   //battery_loop(&PLC.BatteryLevel);
-  sclib_logic(&PLC.Heating);
-  sclib_logic(&PLC.Mode);
-  sclib_Set(&PLC.TemperatureReference, 0, 0.0, 0);
-  sclib_Set(&PLC.PowerReference, 0, 0.0, 0);
   //sclib_writeSetAct(&PLC.Pressure, 7.2);
   mqtt_updHMI(false);
   // alarm(&PLC.LightOn, PLC.Light.Status==2, ALARM_REACTION_WARNING);

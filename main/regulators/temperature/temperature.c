@@ -1,9 +1,11 @@
 #include "temperature.h"
 #include "sclib/hmi_tools/hmi_tools.h"
 #include "sclib/control/PID/pid.h"
+#include "sclib/control/Profile/profile.h"
 #include "peripherials/thermocouple_spi/thermocouple_spi.h"
 #include "HMI.h"
 #include "driver/gpio.h"
+#include "esp_log.h"
 
 // Parametri PID di esempio per temperatura
 static PID_Params temperature_pid_params = {
@@ -21,6 +23,8 @@ static PID_Params temperature_pid_params = {
     .output_gradient = 10.0f // rampa output PID
 };
 static PID_Handle temperaturePID;
+
+static float profile_output = 0.0f;
 
 #define SSR_GPIO 5
 #define SSR_BURST_PERIOD_MS 250
@@ -50,12 +54,38 @@ void temperature_loop(void) {
     float temperature = thermocouple_get_temperature_cached();
     sclib_writeAct(&PLC.ActualTemperature, temperature);
     // Aggiorna HMI con il valore attuale della batteria (output PID)
-    sclib_writeAct(&PLC.ActualPower, PLC.PID.Out);
+    //sclib_writeAct(&PLC.ActualPower, PLC.PID.Out);
+
+    //Gestione logiche ed analogiche
+    sclib_logic(&PLC.Heating);
+    sclib_logic(&PLC.Mode);
+    sclib_Set(&PLC.TemperatureReference, 0, 0.0, 0);
+    sclib_Set(&PLC.PowerReference, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.kP, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.Gp, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.Ti, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.Td, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.Taw, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.PidMin, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.PidMax, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.OutMin, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.OutMax, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.SetpointGradient, 0, 0.0, 0);
+    sclib_Set(&PLC.PID.OutGradient, 0, 0.0, 0);
+
+    //gestione del profilo
+    static ProfileState profile_state = {0};
+    ProfileReturn profile_ret = sclib_profile(&PLC.Profile, &profile_state, PLC.Heating.Status == 2, false, PLC.Heating.Status == 1);
+    profile_output = profile_ret.value;
+
+    // Scrivi il valore del profilo in PLC.ActualPower
+    sclib_writeAct(&PLC.ActualPower, profile_output);
 }
 
 void temperature_interrupt(void) {
     // Test del PID. Cancellare una volta debuggato (se vuoi)
     temperaturePID.params.gradiente = PLC.PID.SetpointGradient.Set.Value;
+    temperaturePID.params.output_gradient = PLC.PID.OutGradient.Set.Value;
     temperaturePID.params.Kp = PLC.PID.kP.Set.Value;
     temperaturePID.params.Ti = PLC.PID.Ti.Set.Value;
     temperaturePID.params.Td = PLC.PID.Ti.Set.Value;
@@ -69,7 +99,13 @@ void temperature_interrupt(void) {
 
 
     // Esegui la regolazione PID ogni 250ms
-    float setpoint = PLC.TemperatureReference.Set.Value;
+    float setpoint = 0.0f;
+    if (PLC.Mode.Status == 3) {
+        // Se la modalità è manuale, usa il valore di uscita manuale
+        setpoint = profile_output;
+    } else {
+        setpoint = PLC.TemperatureReference.Set.Value;
+    }
     float actual   = PLC.ActualTemperature.Act.Value;
     float reference = 0.0f;
     bool stop = (PLC.Heating.Status != 2);
