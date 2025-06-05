@@ -86,8 +86,8 @@ void mqtt_utc_offset() {
     Funzione di receive di una system call.
     Se l'ID è 0 allora si tratta di una system call.
     Per esempio la system call 1 è la richiesta di un reboot.
-    La system call 2 è la richiesta di refresh di tutte le variabili. 
-    La system call 3 è la richiesta di ping.
+    la system call 2 è la richiesta di refresh di tutte le variabili. 
+    la system call 3 è la richiesta di ping.
 */
 
 static void mqtt_system_call(uint8_t call_id) {
@@ -311,11 +311,15 @@ void mqtt_updHMI(bool force) {
                 break;
             }
             case BOOL: {
-                if (*(int *)HMI_pointer[i] != *(int *)PLC_pointer[i] || force) {
+                // Log per debug valore BOOL
+                int plc_val = (*(int *)PLC_pointer[i]) & 1;
+                int hmi_val = (*(int *)HMI_pointer[i]) & 1;
+                bool bool_value = plc_val ? true : false;
+                if (hmi_val != plc_val || force) {
                     cJSON *root = cJSON_CreateObject();
                     cJSON_AddNumberToObject(root, "id", id[i]);
-                    *(int *)HMI_pointer[i] = *(int *)PLC_pointer[i];
-                    cJSON_AddBoolToObject(root, "value", *(int *)PLC_pointer[i] != 0);
+                    *(int *)HMI_pointer[i] = plc_val;
+                    cJSON_AddBoolToObject(root, "value", bool_value);
                     char *payload = cJSON_Print(root);
                     esp_mqtt_client_publish(client, feedback_topic, payload, 0, CONFIG_MQTT_BIRTH_QOS, 0);
                     cJSON_Delete(root);

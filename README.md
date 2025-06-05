@@ -77,6 +77,8 @@ quindi sempre in VS Code apri la cartella .vscode, file settings.json e modifica
 A quel punto dovresti esserci. Se non si apre riavvia VS Code
 
 
+Per cancellare la flash:
+codespace ➜ /workspaces/ESP-IDF/ESP32Template (main) $ esptool.py --chip esp32 erase_flash
 
 #Manufacturing data
 

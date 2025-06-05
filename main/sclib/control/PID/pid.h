@@ -54,54 +54,98 @@ typedef struct {
     bool ramp_initialized;          // flag inizializzazione ramp
     float output_ramp;              // uscita rampata (per stop)
     bool output_ramp_initialized;
-} PID_State;
-
-// Handle PID
-typedef struct {
-    PID_Params params;
-    PID_State state;
-    // Modalità manuale
+    // --- campi operativi per modalità/debounce ---
     bool manual_mode;
     float manual_output;
     int debounce_counter;
     int debounce_threshold;
-    bool pending_mode; // richiesta di cambio modalità
+    bool pending_mode;
+} PID_State;
+
+// Handle PID
+// Contiene solo parametri e stato interno
+typedef struct {
+    PID_Params params;      // Parametri del PID (Kp, Ti, Td, limiti, ecc.)
+    PID_State state;        // Stato interno (integrale, errore, ramp, ecc.)
 } PID_Handle;
 
 #define PID_DEBOUNCE_DEFAULT 4
 
-void PID_Init(PID_Handle *pid, const PID_Params *params);
-/**
- * Reset asincrono del PID: azzera lo stato interno (integrale, derivata, rampa, ecc.).
- * Da chiamare sempre in sezione critica se il PID è usato in ISR/task concorrenti.
- * Esempio:
- *   PID_ENTER_CRITICAL();
- *   PID_Reset(&pid);
- *   PID_EXIT_CRITICAL();
- */
-void PID_Reset(PID_Handle *pid);
-float PID_Compute(PID_Handle *pid, float setpoint, float measure, float reference, bool stop);
-void PID_SetManual(PID_Handle *pid, bool manual, float manual_output);
-/**
- * Forza il valore rampato del setpoint al target desiderato (bypassando la rampa).
- * Utile per cambio ricetta/reset/override.
- */
-void PID_SyncRamp(PID_Handle *pid, float setpoint_target);
-/**
- * Stop asincrono del PID: porta l'uscita a zero con rampa, resetta tutti i contributi.
- * Da chiamare in sezione critica se usato in ISR/task concorrenti.
- * Esempio:
- *   PID_ENTER_CRITICAL();
- *   PID_Stop(&pid);
- *   PID_EXIT_CRITICAL();
- */
-void PID_Stop(PID_Handle *pid);
-/**
- * PWM a treno di semionde per SSR zero crossing.
- * tick_10ms: contatore 0...24 (per periodo 250ms a 50Hz)
- * Restituisce true se la semionda corrente va accesa.
- */
 bool PID_SSR_Burst(PID_Handle *pid, uint32_t tick_10ms);
+
+/**
+ * Funzione monolitica PID: tutti i comandi operativi/modalità sono passati come argomenti.
+ * Le variabili di servizio (debounce, pending_mode, ecc.) vanno gestite dall'utente.
+ *
+ * @param pid Handle PID (contiene solo parametri e stato)
+ * @param setpoint Setpoint richiesto
+ * @param measure Misura attuale
+ * @param reference Feedforward/reference
+ * @param stop Se true, esegue la rampa di stop
+ * @param manual_mode Se true, forza la modalità manuale
+ * @param manual_output Uscita manuale (se in manuale)
+ * @return Uscita PID (o manuale)
+ */
+float PID_Mngt(
+    PID_Handle *pid,
+    float setpoint,
+    float measure,
+    float reference,
+    bool stop,
+    bool manual_mode,
+    bool derivativeEnable,
+    bool awEnable,
+    float manual_output
+);
+
+// Struttura dati per HeatingPWM multistanza
+// Permette la gestione di più uscite PWM SSR indipendenti con rolling average e isteresi
+//
+typedef struct {
+    float duty_sum;           // Somma dei duty per la media
+    int duty_samples;        // Numero di campioni accumulati
+    float duty_avg;          // Media duty ultimo ciclo
+    bool hysteresis_forcing; // true: uscita forzata ON per isteresi, false: forzata OFF
+    bool forced_state;       // true: uscita forzata da isteresi, false: normale
+    bool last_enable;        // Stato enable precedente
+    float elapsed;           // Tempo trascorso nel ciclo attuale
+} HeatingPWM_Instance;
+
+// Struttura di ritorno per HeatingPWM: uscite positive/negative
+// positive_out: true se attiva uscita positiva (riscaldamento)
+// negative_out: true se attiva uscita negativa (raffreddamento)
+typedef struct {
+    bool positive_out;
+    bool negative_out;
+} HeatingPWM_Return;
+
+/**
+ * Gestisce un'uscita PWM per carichi termici (SSR) con rolling average e isteresi temporale.
+ * Permette di evitare commutazioni troppo frequenti, forzando ON/OFF per un tempo minimo se il duty medio
+ * supera soglie definite, e calcola la media del duty su un periodo configurabile.
+ *
+ * @param pwm           Puntatore all'istanza HeatingPWM_Instance (stato interno della PWM)
+ * @param current_duty  Duty cycle corrente (percentuale, positivo=riscalda, negativo=raffredda)
+ * @param duration      Durata del ciclo di regolazione (secondi, es. 60.0)
+ * @param cycle_time    Tempo tra due chiamate successive (secondi, es. 1.0)
+ * @param hysteresis    Durata isteresi ON/OFF forzato (secondi)
+ * @param enable        Abilita/disabilita la PWM (true=attiva, false=resetta tutto)
+ * @return              HeatingPWM_Return: struct con positive_out e negative_out (true se ON, false se OFF)
+ *
+ * Logica:
+ *   - Se duty medio vicino a zero: forzatura OFF (nessuna uscita attiva per isteresi)
+ *   - Se duty medio vicino a +100% o -100%: forzatura ON (uscita positiva o negativa attiva per isteresi)
+ *   - Fuori isteresi: uscita attiva solo per una frazione del ciclo proporzionale al valore assoluto della media
+ *   - Se duty medio positivo: attiva solo positive_out; se negativo: solo negative_out
+ */
+HeatingPWM_Return HeatingPWM(
+    HeatingPWM_Instance *pwm,
+    float current_duty,
+    float duration,
+    float cycle_time,
+    float hysteresis,
+    bool enable
+);
 
 #ifdef __cplusplus
 }

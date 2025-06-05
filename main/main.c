@@ -52,12 +52,7 @@ void loop() {
   // Loop calls
   led_loop();
   //battery_loop(&PLC.BatteryLevel);
-  //sclib_writeSetAct(&PLC.Pressure, 7.2);
   mqtt_updHMI(false);
-  // alarm(&PLC.LightOn, PLC.Light.Status==2, ALARM_REACTION_WARNING);
-  // if (test != PLC.LightOn.Status) {
-  //   test = PLC.LightOn.Status;
-  // }
   check_alarms();
   temperature_loop();
   

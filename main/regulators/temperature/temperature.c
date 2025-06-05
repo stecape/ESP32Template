@@ -27,34 +27,25 @@ static PID_Handle temperaturePID;
 static float profile_output = 0.0f;
 
 #define SSR_GPIO 5
-#define SSR_BURST_PERIOD_MS 250
-#define SSR_BURST_STEPS 25
-
-static volatile uint32_t ssr_tick_10ms = 0;
-
-static void ssr_pwm_task(void *arg) {
-    while (1) {
-        bool ssr_on = PID_SSR_Burst(&temperaturePID, ssr_tick_10ms);
-        gpio_set_level(SSR_GPIO, ssr_on ? 1 : 0);
-        ssr_tick_10ms = (ssr_tick_10ms + 1) % SSR_BURST_STEPS;
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-}
-
-void temperature_ssr_setup(void);
+#define SSR_BURST_PERIOD_S 30
+#define SSR_BURST_HYSTERESIS_S 5
 
 void temperature_setup(void) {
-    PID_Init(&temperaturePID, &temperature_pid_params);
     thermocouple_init();
-    temperature_ssr_setup();
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << SSR_GPIO),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&io_conf);
 }
 
 void temperature_loop(void) {
     // Aggiorna la temperatura letta dalla termocoppia e scrivila su PLC.Temperature
     float temperature = thermocouple_get_temperature_cached();
     sclib_writeAct(&PLC.ActualTemperature, temperature);
-    // Aggiorna HMI con il valore attuale della batteria (output PID)
-    //sclib_writeAct(&PLC.ActualPower, PLC.PID.Out);
 
     //Gestione logiche ed analogiche
     sclib_logic(&PLC.Heating);
@@ -75,11 +66,11 @@ void temperature_loop(void) {
 
     //gestione del profilo
     static ProfileState profile_state = {0};
-    ProfileReturn profile_ret = sclib_profile(&PLC.Profile, &profile_state, PLC.Heating.Status == 2, false, PLC.Heating.Status == 1);
+    ProfileReturn profile_ret = sclib_profile(&PLC.Profile, &profile_state, PLC.Heating.Status == 2 && PLC.Mode.Status == 4, false, PLC.Heating.Status == 1);
     profile_output = profile_ret.value;
 
-    // Scrivi il valore del profilo in PLC.ActualPower
-    sclib_writeAct(&PLC.ActualPower, profile_output);
+    // Scrivi il valore del profilo in PLC.Profile.Output
+    sclib_writeAct(&PLC.Profile.Output, profile_output);
 }
 
 void temperature_interrupt(void) {
@@ -95,26 +86,44 @@ void temperature_interrupt(void) {
     temperaturePID.params.out_max = PLC.PID.PidMax.Set.Value;
     temperaturePID.params.ref_min = PLC.PID.OutMin.Set.Value;
     temperaturePID.params.ref_max = PLC.PID.OutMax.Set.Value;
+    temperaturePID.params.dt = 0.25f; // 250 ms
     // Test del PID. Cancellare una volta debuggato (se vuoi)
 
 
     // Esegui la regolazione PID ogni 250ms
     float setpoint = 0.0f;
-    if (PLC.Mode.Status == 3) {
-        // Se la modalità è manuale, usa il valore di uscita manuale
-        setpoint = profile_output;
-    } else {
+    if (PLC.Mode.Status == 1) {
+        // Se la modalità è manuale, usa il valore dell'actual di temperature, così da congelare il PID
+        setpoint = PLC.ActualTemperature.Act.Value;
+    } else if (PLC.Mode.Status == 2) {
+        // Se la modalità è automatica, usa il setpoint di temperature
         setpoint = PLC.TemperatureReference.Set.Value;
+    } else if (PLC.Mode.Status == 4) {
+        // Se la modalità è profile, usa il setpoint generato dal profilo
+        setpoint = PLC.Profile.Output.Act.Value;
+    } else {
+        // Modalità sconosciuta, non fare nulla
+        return;
     }
-    float actual   = PLC.ActualTemperature.Act.Value;
-    float reference = 0.0f;
-    bool stop = (PLC.Heating.Status != 2);
-    float pid_output = PID_Compute(&temperaturePID, setpoint, actual, reference, stop);
-    // Sincronizza il burst PWM SSR con il nuovo ciclo PID
-    ssr_tick_10ms = 0;
 
+    float pid_output = PID_Mngt(
+        /* pid */           &temperaturePID,
+        /* setpoint */      setpoint,
+        /* actual */        PLC.ActualTemperature.Act.Value,
+        /* reference */     0.0f,
+        /* stop */          PLC.Heating.Status != 2,
+        /* manual_mode */   PLC.Mode.Status == 1,
+        /* deriv. enabled*/ false,
+        /* AW enabled*/     false,
+        /* manual_output */ PLC.PowerReference.Set.Value
+    );
     
     // Test del PID. Cancellare una volta debuggato (se vuoi)
+    PLC.PID.ManualMode = PLC.Mode.Status == 1;
+    PLC.PID.ManualRef = PLC.PowerReference.Set.Value;
+    PLC.PID.Stop = PLC.Heating.Status != 2;
+    PLC.PID.Set = setpoint;
+    PLC.PID.Act = PLC.ActualTemperature.Act.Value;
     PLC.PID.Error = temperaturePID.state.error;
     PLC.PID.kpError = temperaturePID.state.errore_prec;
     PLC.PID.ProportionalCorrection = temperaturePID.state.proportionalCorrection;
@@ -127,17 +136,21 @@ void temperature_interrupt(void) {
     PLC.PID.OutSat = temperaturePID.state.out_tot;
     PLC.PID.Out = pid_output;
     // Test del PID. Cancellare una volta debuggato (se vuoi)
-}
 
-void temperature_ssr_setup(void) {
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << SSR_GPIO),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = 0,
-        .pull_down_en = 0,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&io_conf);
-    gpio_set_level(SSR_GPIO, 0);
-    xTaskCreatePinnedToCore(ssr_pwm_task, "ssr_pwm_task", 2048, NULL, 5, NULL, 1);
+    // Gestione SSR con HeatingPWM
+    static HeatingPWM_Instance ssr_pwm = {0};
+    HeatingPWM_Return ssr_out = HeatingPWM(
+        &ssr_pwm,
+        pid_output, // duty in percentuale, positivo=riscalda, negativo=raffredda
+        SSR_BURST_PERIOD_S, // durata ciclo burst (es. 30s)
+        temperaturePID.params.dt, // tempo ciclo (es. 0.25s)
+        SSR_BURST_HYSTERESIS_S, // isteresi (es. 5s)
+        PLC.Heating.Status == 2 // enable solo se heating attivo
+    );
+    // Attiva/disattiva SSR fisico
+    gpio_set_level(SSR_GPIO, ssr_out.positive_out ? 1 : 0);
+    // (Se hai anche raffreddamento, gestisci qui ssr_out.negative_out)
+    
+
+    sclib_writeAct(&PLC.ActualPower, ssr_pwm.duty_avg); // Uscita totale del PID
 }

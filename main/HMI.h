@@ -88,6 +88,11 @@ typedef struct {
 	Set SetpointGradient;
 	Set Taw;
 	float AntiWindupContribute;
+	float Set;
+	float Act;
+	float ManualRef;
+	bool ManualMode;
+	bool Stop;
 } PID;
 
 typedef struct {
@@ -102,6 +107,7 @@ typedef struct {
 typedef struct {
 	DataSet Times;
 	DataSet Values;
+	Act Output;
 } Interpolation;
 
 
@@ -119,10 +125,10 @@ typedef struct {
 extern _HMI HMI;
 extern _HMI PLC;
 
-extern int id[175];
-extern int type[175];
-extern void *HMI_pointer[175];
-extern void *PLC_pointer[175];
+extern int id[185];
+extern int type[185];
+extern void *HMI_pointer[185];
+extern void *PLC_pointer[185];
 
 #endif
   
