@@ -114,7 +114,7 @@ void temperature_interrupt(void) {
         /* stop */          PLC.Heating.Status != 2,
         /* manual_mode */   PLC.Mode.Status == 1,
         /* deriv. enabled*/ false,
-        /* AW enabled*/     false,
+        /* AW enabled*/     true,
         /* manual_output */ PLC.PowerReference.Set.Value
     );
     
